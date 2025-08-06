@@ -1,4 +1,7 @@
-# This file contains functions to decode IEX messages in the DEEP format.
+# This file contains functions to decode IEX messages in the DEEP1.0 format.
+#
+# Benedikt Otto - b.otto.code@protonmail.com - https://github.com/mafuba8
+#
 import struct
 
 #############################

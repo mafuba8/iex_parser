@@ -1,6 +1,6 @@
 # This program parses IEX exchange market data, given via a pcap file of packets in IEX-TP format.
 #
-# Benedikt Otto - b.otto.code@protonmail.com
+# Benedikt Otto - b.otto.code@protonmail.com - https://github.com/mafuba8
 #
 import struct
 import time
