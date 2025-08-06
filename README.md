@@ -13,7 +13,6 @@ It provides the following benefits:
 - Only depends on native Python modules.
 - Support for all message types in the DEEP1.0 specification.
 
----
 
 ## How to Use
 The parser needs its input in raw PCAP format, so we need to unzip and apply `tcpdump` to those files:
@@ -26,10 +25,10 @@ $ gunzip -d -c example/data_feeds_20180127_20180127_IEXTP1_DEEP1.0.pcap.gz | \
 $ python3 iex_parser.py example/data_feeds_20180127_20180127_IEXTP1_DEEP1.0.raw output_directory
 
 # Since raw files are pretty big, is is better to pipe them:
-gunzip -d -c example/data_feeds_20180127_20180127_IEXTP1_DEEP1.0.pcap.gz | tcpdump -r - -w - -s 0 | python3 iex_parser.py /dev/stdin output_directory
+gunzip -d -c example/data_feeds_20180127_20180127_IEXTP1_DEEP1.0.pcap.gz | \
+    tcpdump -r - -w - -s 0 | python3 iex_parser.py /dev/stdin output_directory
 ```
 
----
 
 ## Output
 For each message type, the parser will create one file `output-<message_type>.csv` within the
@@ -57,8 +56,8 @@ For analyzing IEX data, three timestamps might be interesting:
 - **Send Time:** Timestamp on the IEX-TP packet header.
 - **Raw Time:** Timestamp on the message header.
 
-We always have `Packet Capture Time < Send Time < Raw Time`, so the first three columns in each
-file are the following:
+We always have `Packet Capture Time <= Send Time <= Raw Time`, so we record the offset of Send Time and Raw Time
+to the Packet Capture time. So the first three columns in each file are the following:
 - Packet Capture Time
   - in nanoseconds since POSIX (Epoch) time UTC.
 - Send Time Offset
