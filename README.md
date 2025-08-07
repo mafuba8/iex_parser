@@ -16,7 +16,7 @@ It provides the following benefits:
 
 ## How to Use
 The parser needs its input in *raw PCAP* format. Since the dumps are given in zipped PcapNG,
-we need to unzip and convert it with `tcpdump`:
+we need to unzip and convert them with `tcpdump`:
 ```bash
 mkdir output_directory
 
