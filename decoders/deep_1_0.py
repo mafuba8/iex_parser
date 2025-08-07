@@ -174,17 +174,13 @@ def decode_trading_status_message(message_payload: bytes) -> (int, str):
 
     # Determine trading status.
     match chr(trading_status_int):
-        case 'H':
-            # Trading halted across all US equity markets.
+        case 'H':  # Trading halted across all US equity markets.
             trading_status_string = 'HALTED'
-        case 'O':
-            # Trading halt released into an Order Acceptance Period in IEX.
+        case 'O':  # Trading halt released into an Order Acceptance Period in IEX.
             trading_status_string = 'HALT_RELEASED_INTO_OAP'
-        case 'P':
-            # Trading paused and Order Acceptance Period on IEX.
+        case 'P':  # Trading paused and Order Acceptance Period on IEX.
             trading_status_string = 'PAUSED'
-        case 'T':
-            # Trading on IEX.
+        case 'T':  # Trading on IEX.
             trading_status_string = 'TRADING'
         case _:
             trading_status_string = ''
