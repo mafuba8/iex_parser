@@ -23,8 +23,6 @@ class IEXFileParser:
         self.num_packets = 0
         self._message_type_counter = {t: 0 for t in self._MESSAGE_TYPES}
         self._output_buffers = {t: [] for t in self._MESSAGE_TYPES}
-        self._message_decoder = {t: decoders.deep_1_0.get_decoder(t) for t in self._MESSAGE_TYPES}
-
 
     def parse(self):
         """Reads the input_file and parses the message contents. The output data will be
@@ -94,7 +92,6 @@ class IEXFileParser:
                 with open(self.output_file_dict[t], 'a+') as f:
                     f.writelines(self._output_buffers[t])
 
-
     def print_counter(self):
         """Prints how many of each message type was processed.
         """
@@ -102,7 +99,6 @@ class IEXFileParser:
         for message_type in self._MESSAGE_TYPES:
             print(f'  {self._message_type_counter[message_type]:,}'
                   f' {self._MESSAGE_TYPE_NAMES[message_type]} ({message_type})')
-
 
     def _parse_iex_payload(self, iex_payload: bytes,
                            packet_capture_time: int):
@@ -132,8 +128,8 @@ class IEXFileParser:
         cur_offset = 0
         for i in range(message_count):
             # Extract the length and the bytes of the current message.
-            message_len = struct.unpack('<H', message_bytes[cur_offset:cur_offset + 2])[0]
-            cur_message_bytes = message_bytes[cur_offset + 2:cur_offset + 2 + message_len]
+            message_len = struct.unpack('<H', message_bytes[cur_offset : cur_offset + 2])[0]
+            cur_message_bytes = message_bytes[cur_offset + 2 : cur_offset + 2 + message_len]
 
             # Parse the current message.
             self._parse_iex_message(cur_message_bytes, packet_capture_time, send_time)
@@ -145,33 +141,27 @@ class IEXFileParser:
         if cur_offset != payload_len:
             raise Exception("Invalid parser state: cur_offset after parsing all messages does not match the header.")
 
-
     def _parse_iex_message(self, message_payload: bytes,
                            packet_capture_time: int,
                            send_time: int):
-        """Parses the given message payload according to the DEEP specification and writes the
+        """Parses the given message payload according to the DEEP1.0 specification and writes the
         decoded CSV line to buffer. Each DEEP message starts with a message byte indicating the
         type of message and the layout of the following bytes.
         """
-        # Extract the message type byte.
-        message_type = chr(message_payload[0])
+        # Decode the message payload.
+        raw_timestamp, message_string, message_type = decoders.deep_1_0.decode(message_payload)
 
-        # Decode message and write the output strings to buffer.
-        if message_type in self._MESSAGE_TYPES:
-            self._message_type_counter[message_type] += 1
+        # Calculate offsets to packet capture time.
+        packet_send_offset = packet_capture_time - send_time
+        packet_raw_offset = packet_capture_time - raw_timestamp
 
-            # Decode the message payload.
-            decoder = self._message_decoder[message_type]
-            raw_timestamp, message_string = decoder(message_payload)
+        # Prepend timestamps and add full line to buffer.
+        output_string = f'{packet_capture_time},{packet_send_offset},{packet_raw_offset},'
+        output_string += message_string + '\n'
+        self._output_buffers[message_type].append(output_string)
 
-            # Calculate offsets to packet capture time.
-            packet_send_offset = packet_capture_time - send_time
-            packet_raw_offset = packet_capture_time - raw_timestamp
-
-            # Prepend timestamps and add full line to buffer.
-            output_string = f'{packet_capture_time},{packet_send_offset},{packet_raw_offset},'
-            output_string += message_string + '\n'
-            self._output_buffers[message_type].append(output_string)
+        # Count the message type.
+        self._message_type_counter[message_type] += 1
 
 
 if __name__ == "__main__":

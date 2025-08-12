@@ -513,42 +513,49 @@ def decode_auction_information_message(message_payload: bytes) -> (int, str):
 
 
 #############################
-### Functions for DEEP
+### Decoder function for DEEP
 #############################
-def get_decoder(message_type: str):
-    """Returns the decoder function for the given message_type.
+def decode(message_payload: bytes) -> (int, str, str):
+    """Parses the given DEEP1.0 message payload by reading the message type byte from it and choosing
+    the appropriate message decoder function. Returns:
+      - the raw timestamp in nanoseconds
+      - the parsed message string
+      - the message type as a single character.
     """
+    # Read the message type byte.
+    message_type = chr(message_payload[0])
     match message_type:
         # Administrative Message Formats
         case 'S':
-            return decode_system_event_message
+            raw_timestamp, message_string = decode_system_event_message(message_payload)
         case 'D':
-            return decode_security_directory_message
+            raw_timestamp, message_string = decode_security_directory_message(message_payload)
         case 'H':
-            return decode_trading_status_message
+            raw_timestamp, message_string = decode_trading_status_message(message_payload)
         case 'I':
-            return decode_retail_liquidity_indicator_message
+            raw_timestamp, message_string = decode_retail_liquidity_indicator_message(message_payload)
         case 'O':
-            return decode_operational_halt_status_message
+            raw_timestamp, message_string = decode_operational_halt_status_message(message_payload)
         case 'P':
-            return decode_short_sale_price_test_status_message
+            raw_timestamp, message_string = decode_short_sale_price_test_status_message(message_payload)
         case 'E':
-            return decode_security_event_message
+            raw_timestamp, message_string = decode_security_event_message(message_payload)
         # Trading Message Formats
         case '8':
-            return decode_price_level_update
+            raw_timestamp, message_string = decode_price_level_update(message_payload)
         case '5':
-            return decode_price_level_update
+            raw_timestamp, message_string = decode_price_level_update(message_payload)
         case 'T':
-            return decode_trade_report_message
+            raw_timestamp, message_string = decode_trade_report_message(message_payload)
         case 'X':
-            return decode_official_price_message
+            raw_timestamp, message_string = decode_official_price_message(message_payload)
         case 'B':
-            return decode_trade_break_message
+            raw_timestamp, message_string = decode_trade_break_message(message_payload)
         # Auction Message Formats
         case 'A':
-            return decode_auction_information_message
+            raw_timestamp, message_string = decode_auction_information_message(message_payload)
 
         case _:
             raise Exception('Unknown DEEP message type')
 
+    return raw_timestamp, message_string, message_type
