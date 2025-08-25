@@ -26,7 +26,7 @@ MESSAGE_TYPE_NAMES = {
     'A': "Auction Information",
 }
 
-# Corresponding CSV headers. TODO
+# Corresponding CSV headers.
 CSV_HEADERS = {
     # Administrative Messages
     'S': 'Tick Type,System Event',
