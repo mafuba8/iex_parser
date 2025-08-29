@@ -15,19 +15,13 @@ It provides the following benefits:
 
 
 ## How to Use
-The parser needs its input in *raw PCAP* format. Since the dumps are given in zipped PcapNG,
-we need to unzip and convert them with `tcpdump`:
+The parser takes its input in **gzipped PCAP-NG** format (which should be the format as presented on the IEX page).
+
 ```bash
 mkdir output_directory
 
-# Extract pcap.gz into .raw file and use that one.
-$ gunzip -d -c example/data_feeds_20180127_20180127_IEXTP1_DEEP1.0.pcap.gz | \
-    tcpdump -r - -s 0 -w example/data_feeds_20180127_20180127_IEXTP1_DEEP1.0.raw
-$ python3 iex_parser.py example/data_feeds_20180127_20180127_IEXTP1_DEEP1.0.raw output_directory
-
-# Since raw files are pretty big, we can also pipe them:
-$ gunzip -d -c example/data_feeds_20180127_20180127_IEXTP1_DEEP1.0.pcap.gz | \
-    tcpdump -r - -s 0 -w - | python3 iex_parser.py /dev/stdin output_directory
+# Parse pcap.gz file into output_directory.
+$ python3 iex_parser.py example/data_feeds_20180127_20180127_IEXTP1_DEEP1.0.pcap.gz output_directory
 ```
 
 
