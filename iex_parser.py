@@ -3,8 +3,6 @@
 # Benedikt Otto - b.otto.code@protonmail.com - https://github.com/mafuba8
 #
 import struct
-import time
-import sys
 import gzip
 import decoders.deep_1_0
 
@@ -199,25 +197,3 @@ class IEXFileParser:
 
         # Count the message type.
         self._message_type_counter[message_type] += 1
-
-
-if __name__ == "__main__":
-    # Get input from CLI arguments.
-    if len(sys.argv) < 3:
-        print(f'Usage: {sys.argv[0]} input_file.pcap.gz output_directory')
-        exit()
-
-    INPUT_FILE = sys.argv[1]
-    OUTPUT_DIR = sys.argv[2]
-
-    # We measure the total time needed for the parse.
-    time_start = time.time()
-
-    # Create the parser object and parse the files.
-    iex_parser = IEXFileParser(INPUT_FILE, OUTPUT_DIR)
-    iex_parser.parse()
-
-    # Get some statistics.
-    iex_parser.print_counter()
-    time_end = time.time()
-    print(f'Process took {time_end - time_start:.0f} seconds.')
