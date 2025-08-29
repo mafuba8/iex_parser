@@ -15,13 +15,19 @@ It provides the following benefits:
 
 
 ## How to Use
-The parser takes its input in **gzipped PCAP-NG** format (which should be the format as presented on the IEX page).
+The parser takes its input in gzipped PCAP-NG format (which should be the format as presented on the IEX page).
 
+To parse a single file, parse the file with an `IEXParser` object:   
+```python
+import iex_parser
+
+parser = iex_parser.IEXFileParser(input_file, output_dir)
+parser.parse()
+```
+
+There is also a small script for processing files in parallel:
 ```bash
-mkdir output_directory
-
-# Parse pcap.gz file into output_directory.
-$ python3 iex_parser.py example/data_feeds_20180127_20180127_IEXTP1_DEEP1.0.pcap.gz output_directory
+$ python3 batch_parse.py data output_directory
 ```
 
 
