@@ -18,10 +18,12 @@ class IEXFileParser:
     _CSV_HEADER_DICT = decoders.deep_1_0.CSV_HEADERS
 
     def __init__(self, input_file: str,
-                 output_dir: str):
+                 output_dir: str,
+                 max_packets=-1):
         self.input_file = input_file
         self.output_file_dict = {t: f'{output_dir}/output-{t}.csv' for t in self._MESSAGE_TYPES}
         self.num_packets = 0
+        self.max_packets = max_packets
         self._message_type_counter = {t: 0 for t in self._MESSAGE_TYPES}
         self._output_buffers = {t: [] for t in self._MESSAGE_TYPES}
 
@@ -116,6 +118,11 @@ class IEXFileParser:
                         self._output_buffers[t] = []
 
                     print(f'Parsed {self.num_packets:,} packets.')
+
+                # Stop early if a limit on max_packets is set.
+                if self.max_packets > 0:
+                    if self.num_packets > self.max_packets:
+                        break
 
             # Write remaining buffer to output.
             for t in self._MESSAGE_TYPES:
