@@ -197,10 +197,7 @@ class IEXFileParser:
 if __name__ == "__main__":
     # Get input from CLI arguments.
     if len(sys.argv) < 3:
-        print(f'Usage: {sys.argv[0]} input_file.raw output_directory')
-        print(f'For example:')
-        print(f'   gunzip -d -c FILE.pcap.gz | tcpdump -r - -w - -s 0 | '
-              f'python3 {sys.argv[0]} /dev/stdin output_folder')
+        print(f'Usage: {sys.argv[0]} input_file.pcap.gz output_directory')
         exit()
 
     INPUT_FILE = sys.argv[1]
