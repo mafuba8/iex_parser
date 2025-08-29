@@ -63,15 +63,14 @@ class IEXFileParser:
                 orig_len = struct.unpack('<I', packet_header[12:16])[0]  # Original Packet length
 
                 # Calculate packet timestamp in nanoseconds.
-                packet_capture_time_in_nanoseconds = int((ts_sec * 1e9) + (ts_usec * 1e3))
+                packet_capture_time_in_nanoseconds = (ts_sec * 1_000_000_000) + (ts_usec * 1_000)
 
                 # Skip Ethernet, IP and UDP headers to get to the IEX payload (42 bytes).
                 offset_into_iex_payload = 14 + 20 + 8
                 stream.read(offset_into_iex_payload)
 
-                # Ensure that the packet length is less than 42 bytes.
-                if incl_len < 42:
-                    raise Exception(f"Invalid packet length: {incl_len}.")
+                # Ensure that the packet length is more than 42 bytes.
+                assert incl_len >= 42, f"Invalid packet length: {incl_len}"
 
                 # Extract and parse IEX payload.
                 iex_payload_length = incl_len - offset_into_iex_payload
