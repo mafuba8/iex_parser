@@ -5,19 +5,37 @@
 import struct
 import gzip
 import decoders.deep_1_0
+import decoders.tops_1_6
+
+
+class Decoder:
+    def __init__(self, feed: str):
+        match feed:
+            case 'DEEP_1_0':
+                d = decoders.deep_1_0
+            case 'TOPS_1_6':
+                d = decoders.deep_1_0
+            case _:
+                raise Exception('Unknown feed type.')
+
+        self.message_types = d.MESSAGE_TYPES
+        self.message_type_names = d.MESSAGE_TYPE_NAMES
+        self.csv_header_dict = d.CSV_HEADERS
+        self.decoder = d.decode
 
 
 class IEXFileParser:
     """
     Class for parsing PCAP files of IEX-TP packets with messages from the DEEP feed.
     """
-    _MESSAGE_TYPES = decoders.deep_1_0.MESSAGE_TYPES
-    _MESSAGE_TYPE_NAMES = decoders.deep_1_0.MESSAGE_TYPE_NAMES
-    _CSV_HEADER_DICT = decoders.deep_1_0.CSV_HEADERS
-
     def __init__(self, input_file: str,
                  output_dir: str,
+                 decoder: Decoder,
                  max_packets=-1):
+        self._MESSAGE_TYPES = decoder.message_types
+        self._MESSAGE_TYPE_NAMES = decoder.message_type_names
+        self._CSV_HEADER_DICT = decoder.csv_header_dict
+        self._DECODER = decoder.decoder
         self.input_file = input_file
         self.output_file_dict = {t: f'{output_dir}/output-{t}.csv' for t in self._MESSAGE_TYPES}
         self.num_packets = 0
@@ -184,7 +202,7 @@ class IEXFileParser:
         type of message and the layout of the following bytes.
         """
         # Decode the message payload.
-        raw_timestamp, message_string, message_type = decoders.deep_1_0.decode(message_payload)
+        raw_timestamp, message_string, message_type = self._DECODER(message_payload)
 
         # Calculate offsets to packet capture time.
         packet_send_offset = packet_capture_time - send_time

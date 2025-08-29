@@ -25,7 +25,8 @@ def parse_file(file_tuple):
     time_start = time.time()
 
     # Create the parser object and parse the files.
-    parser = iex_parser.IEXFileParser(input_file, output_dir)
+    decoder = iex_parser.Decoder('DEEP_1_0')
+    parser = iex_parser.IEXFileParser(input_file, output_dir, decoder)
     parser.parse()
 
     print(f'Parsed {os.path.basename(input_file)} in {time.time() - time_start:.0f}'
