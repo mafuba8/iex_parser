@@ -5,6 +5,7 @@
 import struct
 import time
 import sys
+import gzip
 import decoders.deep_1_0
 
 
@@ -38,44 +39,74 @@ class IEXFileParser:
                 f.write(csv_header)
 
         # Open and parse the input file.
-        with open(self.input_file, 'rb') as stream:
-            # Skip the PCAP file header (24 bytes).
-            stream.read(24)
+        with gzip.open(self.input_file, 'rb') as stream:
+            # Parse the PcapNG header (Section Header Block).
+            file_magic_number = stream.read(4)
+            shb_size_raw = stream.read(4)
+            byte_order_magic = stream.read(4)
+            major_version = stream.read(2)
+            minor_version = stream.read(2)
+
+            # Ensure that the file has the right encoding.
+            assert file_magic_number == b'\x0a\x0d\x0d\x0a', 'File must be in PcapNG format.'
+            assert byte_order_magic == b'\x4d\x3c\x2b\x1a', 'File must be encoded in little endian.'
+            assert major_version == b'\x01\x00' and minor_version == b'\x00\00', 'PCapNG version must be 1.0.'
+
+            # Skip the remaining Section Header Block bytes.
+            shb_size = struct.unpack('<I', shb_size_raw)[0]
+            stream.read(shb_size - (4 + 4 + 4 + 2 + 2))
 
             # Main loop to read and process packets.
             while True:
                 self.num_packets += 1
 
-                # Read packet
-                packet_header_len = 4 + 4 + 4 + 4
-                packet_header = stream.read(packet_header_len)
+                # Read type of the next packet block.
+                block_type = stream.read(4)
 
-                # Check if the EoF is reached or the packet header is incomplete.
-                if len(packet_header) == 0:
+                # Check if the EoF is reached.
+                if len(block_type) == 0:
                     print(f'End of file reached...terminating!')
                     print()
                     break
 
-                # Unpack the pcap packet header.
-                ts_sec = struct.unpack('<I', packet_header[0:4])[0]  # Timestamp (seconds)
-                ts_usec = struct.unpack('<I', packet_header[4:8])[0]  # Timestamp (microseconds)
-                incl_len = struct.unpack('<I', packet_header[8:12])[0]  # Captured Packet length
-                orig_len = struct.unpack('<I', packet_header[12:16])[0]  # Original Packet length
+                block_size = struct.unpack('<I', stream.read(4))[0]
 
-                # Calculate packet timestamp in nanoseconds.
-                packet_capture_time_in_nanoseconds = (ts_sec * 1_000_000_000) + (ts_usec * 1_000)
+                # We will only parse the Enhanced Packet Blocks (EPB).
+                if block_type != b'\x06\x00\x00\x00':
+                    # Skip remaining bytes to get to the next block.
+                    remaining_length = block_size - (4 + 4)
+                    stream.read(remaining_length)
+                    continue
 
-                # Skip Ethernet, IP and UDP headers to get to the IEX payload (42 bytes).
+                # Read EPB header.
+                stream.read(4)  # Skip Interface ID.
+                ts_upper = stream.read(4)
+                ts_lower = stream.read(4)
+                captured_packet_length = struct.unpack('<I', stream.read(4))[0]
+                original_packet_length = struct.unpack('<I', stream.read(4))[0]
+
+                assert captured_packet_length == original_packet_length, "We assume a smap length value of 0."
+
+                # Timestamps are split in two 32bit blocks and in little endian.
+                timestamp = struct.unpack('<Q', ts_lower + ts_upper)[0]
+                # We assume that the timestamp are in microseconds (default).
+                packet_capture_time_in_nanoseconds = timestamp * 1000
+
+                # Ensure that the packet length is more than 42 bytes.
+                assert captured_packet_length >= 42, f"Invalid packet length: {block_size}"
+
+                # Skip Ethernet, IP and UDP headers to get to the IEX payload.
                 offset_into_iex_payload = 14 + 20 + 8
                 stream.read(offset_into_iex_payload)
 
-                # Ensure that the packet length is more than 42 bytes.
-                assert incl_len >= 42, f"Invalid packet length: {incl_len}"
-
                 # Extract and parse IEX payload.
-                iex_payload_length = incl_len - offset_into_iex_payload
+                iex_payload_length = captured_packet_length - offset_into_iex_payload
                 iex_packet = stream.read(iex_payload_length)
                 self._parse_iex_payload(iex_packet, packet_capture_time_in_nanoseconds)
+
+                # Skip the remaining fields of the current EPB.
+                rest_length = block_size - (4 + 4 + 4 + 4 + 4 + 4 + 4 + captured_packet_length)
+                stream.read(rest_length)
 
                 # Every 10 million packets, write buffer to their respective files and print a status message.
                 if self.num_packets % 10_000_000 == 0:
