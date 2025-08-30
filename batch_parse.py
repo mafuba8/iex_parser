@@ -11,6 +11,7 @@
 import iex_parser
 import re
 import time
+import shutil
 import sys
 from pathlib import Path
 from multiprocessing import Pool
@@ -31,6 +32,9 @@ def parse_file(file_tuple):
     print(f'Parsed {input_file.name} in {time.time() - time_start:.0f}'
           f' seconds ({parser.num_packets:,} packets).')
 
+    # Move input file to DONE folder.
+    shutil.move(input_file, DIR_DONE)
+
 
 if __name__ == '__main__':
     # Get input from CLI arguments.
@@ -40,6 +44,8 @@ if __name__ == '__main__':
 
     DIR_INPUT = Path(sys.argv[1])
     DIR_OUTPUT = Path(sys.argv[2])
+    DIR_DONE = (DIR_INPUT / 'DONE')
+    DIR_DONE.mkdir(parents=True, exist_ok=True)
 
     # Build list of files to be parsed.
     input_file_list = []
