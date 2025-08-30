@@ -222,3 +222,45 @@ class IEXFileParser:
 
         # Count the message type.
         self._message_type_counter[message_type] += 1
+
+
+
+if __name__ == '__main__':
+    """Main method for parsing single IEX files.
+    """
+    import re
+    import sys
+    import time
+    from pathlib import Path
+
+    # Get input from CLI arguments.
+    if len(sys.argv) < 3:
+        print(f'Usage: {sys.argv[0]} input_file output_directory')
+        exit()
+
+    FILE_INPUT = Path(sys.argv[1])
+    DIR_OUTPUT = Path(sys.argv[2])
+
+    # Choose decoder from the filename.
+    regex_deep_10 = re.compile(r'^data_feeds_(\d{8})_(\d{8})_IEXTP1_DEEP1\.0\.pcap\.gz$')
+    regex_tops_16 = re.compile(r'^data_feeds_(\d{8})_(\d{8})_IEXTP1_TOPS1\.6\.pcap\.gz$')
+
+    if regex_deep_10.search(FILE_INPUT.name):
+        decoder = Decoder('DEEP_1_0')
+    elif regex_tops_16.search(FILE_INPUT.name):
+        decoder = Decoder('TOPS_1_6')
+    else:
+        print(f'Could not determine the right decoder, exiting...')
+        exit()
+
+    time_start = time.time()
+
+    # Create parser object and parse the file with the chosen decoder.
+    parser = IEXFileParser(FILE_INPUT, DIR_OUTPUT, decoder)
+    parser.parse()
+
+    # Print some information.
+    parser.print_counter()
+
+    print(f'Parsed {FILE_INPUT.name} in {time.time() - time_start:.0f}'
+          f' seconds ({parser.num_packets:,} packets).')
