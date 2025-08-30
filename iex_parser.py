@@ -89,8 +89,6 @@ class IEXFileParser:
 
                 # Check if the EoF is reached.
                 if len(block_type) == 0:
-                    print(f'End of file reached...terminating!')
-                    print()
                     break
 
                 block_size = struct.unpack('<I', stream.read(4))[0]
