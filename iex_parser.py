@@ -12,16 +12,20 @@ class Decoder:
     def __init__(self, feed: str):
         match feed:
             case 'DEEP_1_0':
-                d = decoders.deep_1_0
+                decoder_lib = decoders.deep_1_0
+                self.message_protocol_id = 0x8004
+                self.channel_id = 1
             case 'TOPS_1_6':
-                d = decoders.deep_1_0
+                decoder_lib = decoders.tops_1_6
+                self.message_protocol_id = 0x8003
+                self.channel_id = 1
             case _:
                 raise Exception('Unknown feed type.')
 
-        self.message_types = d.MESSAGE_TYPES
-        self.message_type_names = d.MESSAGE_TYPE_NAMES
-        self.csv_header_dict = d.CSV_HEADERS
-        self.decoder = d.decode
+        self.message_types = decoder_lib.MESSAGE_TYPES
+        self.message_type_names = decoder_lib.MESSAGE_TYPE_NAMES
+        self.csv_header_dict = decoder_lib.CSV_HEADERS
+        self.decoder = decoder_lib.decode
 
 
 class IEXFileParser:
@@ -36,6 +40,8 @@ class IEXFileParser:
         self._MESSAGE_TYPE_NAMES = decoder.message_type_names
         self._CSV_HEADER_DICT = decoder.csv_header_dict
         self._DECODER = decoder.decoder
+        self._MESSAGE_PROTOCOL_ID = decoder.message_protocol_id
+        self._CHANNEL_ID = decoder.channel_id
         self.input_file = input_file
         self.output_file_dict = {t: f'{output_dir}/output-{t}.csv' for t in self._MESSAGE_TYPES}
         self.num_packets = 0
@@ -171,8 +177,9 @@ class IEXFileParser:
         if len(iex_payload) != payload_len + 40:
             raise Exception("Invalid parser state; the length of the IEX payload does not match the header.")
 
-        # Ensure that the messages are in DEEP format.
-        assert message_protocol_id == 0x8004 and channel_id == 1, "Input must be in DEEP1.0 format."
+        # Ensure that the messages are in the right format.
+        assert (message_protocol_id == self._MESSAGE_PROTOCOL_ID
+                and channel_id == self._CHANNEL_ID), "Input is not in the format defined by the decoder."
 
         # The remaining bytes are a sequence of messages.
         message_bytes = iex_payload[40:]
