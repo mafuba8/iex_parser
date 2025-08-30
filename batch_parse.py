@@ -12,7 +12,6 @@ import iex_parser
 import re
 import time
 import sys
-import os
 from pathlib import Path
 from multiprocessing import Pool
 
@@ -29,7 +28,7 @@ def parse_file(file_tuple):
     parser = iex_parser.IEXFileParser(input_file, output_dir, decoder)
     parser.parse()
 
-    print(f'Parsed {os.path.basename(input_file)} in {time.time() - time_start:.0f}'
+    print(f'Parsed {input_file.name} in {time.time() - time_start:.0f}'
           f' seconds ({parser.num_packets:,} packets).')
 
 
@@ -47,7 +46,6 @@ if __name__ == '__main__':
     regex_deep_10 = re.compile(r'^data_feeds_(\d{8})_(\d{8})_IEXTP1_DEEP1\.0\.pcap\.gz$')
     regex_tops_16 = re.compile(r'^data_feeds_(\d{8})_(\d{8})_IEXTP1_TOPS1\.6\.pcap\.gz$')
     for file in DIR_INPUT.iterdir():
-        os.path.basename(file)
         s_deep_10 = regex_deep_10.search(file.name)
         s_tops_16 = regex_tops_16.search(file.name)
 
