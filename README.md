@@ -1,33 +1,39 @@
 # IEX Data Parser
 This is a Python-based Parser for converting Market Data from the 
-[IEX HIST](https://iextrading.com/trading/market-data/) into CSV files. Data from IEX is 
-presented as PCAP files, which is a raw dump of network packets in the IEX-TP protocol.
+[IEX HIST](https://iextrading.com/trading/market-data/) into CSV files. Data from IEX is provided through
+PCAP-NG files, which are raw dumps of network packets in the IEX-TP protocol.
 
-While other Python Parsers suffer in performance due to their reliance on packet capture 
-modules like `scapy`, this parser works directly at the byte-level by reading the 
-network packets according to the 
+This parser work directly at the byte-level by reading the network packets according to the 
 [IEX-TP specification](https://www.iexexchange.io/resources/trading/documents#specifications).
 
 It provides the following benefits:
 - Higher performance than other Python-based Parsers.
 - Only depends on native Python modules.
-- Support for all message types in the DEEP1.0 specification.
+- Support for all message types in the DEEP1.0 and TOPS1.6 specification.
 
 
 ## How to Use
 The parser takes its input in gzipped PCAP-NG format (which should be the format as presented on the IEX page).
 
-To parse a single file, parse the file with an `IEXParser` object:   
+A single file can be parsed with the `iex_parser.py` script:
+```bash
+$ python3 iex_parser.py <input_file> <output_dir>
+```
+
+There is also a script for processing files in parallel. It moves all completed files into a subfolder `DONE`
+within the input directory:
+```bash
+$ python3 batch_parse.py <input_dir> <output_directory>
+```
+
+To use the parser within a Python script, create a `Decoder` with the right encoding and with it an `IEXFileParser`
+object:
 ```python
 import iex_parser
 
-parser = iex_parser.IEXFileParser(input_file, output_dir)
+decoder = iex_parser.Decoder('DEEP_1_0')
+parser = iex_parser.IEXFileParser(FILE_INPUT, DIR_OUTPUT, decoder)
 parser.parse()
-```
-
-There is also a small script for processing files in parallel:
-```bash
-$ python3 batch_parse.py data output_directory
 ```
 
 
@@ -43,8 +49,9 @@ output directory:
   - Short Sale Price Test Status Message (P): `output-P.csv`
   - Security Event Message (E): `output-E.csv`
 - Trading Messages
-  - Price Level Update - Buy (8): `output-8.csv`
-  - Price Level Update - Sell (5): `output-5.csv`
+  - Price Level Update - Buy (8): `output-8.csv` (DEEP only)
+  - Price Level Update - Sell (5): `output-5.csv` (DEEP only)
+  - Quote Update Message (Q): `output-Q.csv` (TOPS only)
   - Trade Report Message (T): `output-T.csv`
   - Official Price Message (X): `output-X.csv`
   - Trade Break Message (B): `output-B.csv`
