@@ -76,11 +76,11 @@ class SecurityDirectory:
     def to_string(self):
         # Determine security directory flags.
         sd_flags = []
-        if self.is_test_sec:
+        if self.is_test_sec:  # Symbol is a test security
             sd_flags.append('TEST_SECURITY')
-        if self.is_issued_sec:
+        if self.is_issued_sec:  # Symbol is a when issued security
             sd_flags.append('WHEN_ISSUED')
-        if self.is_etp:
+        if self.is_etp:  # Symbol is an ETP
             sd_flags.append('ETP')
         sd_flag_string = '|'.join(sd_flags)
 
@@ -124,13 +124,13 @@ class TradingStatus:
         # Determine trading status.
         trading_status_string = ''
         match self.trading_status:
-            case 'H':  # Trading halted across all US equity markets.
+            case 'H':  # Trading halted across all US equity markets
                 trading_status_string = 'HALTED'
-            case 'O':  # Trading halt released into an Order Acceptance Period in IEX.
+            case 'O':  # Trading halt released into an Order Acceptance Period in IEX
                 trading_status_string = 'HALT_RELEASED_INTO_OAP'
-            case 'P':  # Trading paused and Order Acceptance Period on IEX.
+            case 'P':  # Trading paused and Order Acceptance Period on IEX
                 trading_status_string = 'PAUSED'
-            case 'T':  # Trading on IEX.
+            case 'T':  # Trading on IEX
                 trading_status_string = 'TRADING'
 
         # Create message string.
@@ -238,15 +238,15 @@ class ShortSalePriceTestStatus:
         # Determine short sale price test detail.
         detail_string = ''
         match self.price_test_detail:
-            case ' ':  # No price test in place.
+            case ' ':  # No price test in place
                 detail_string = 'NO_PRICE_TEST'
-            case 'A':  # Restrictions in effect due to an intraday price drop in the security.
+            case 'A':  # Restrictions in effect due to an intraday price drop in the security
                 detail_string = 'RES_ACTIVATED'
-            case 'C':  # Restriction remains in effect from prior day.
+            case 'C':  # Restriction remains in effect from prior day
                 detail_string = 'RES_CONTINUED'
-            case 'D':  # Restriction deactivated.
+            case 'D':  # Restriction deactivated
                 detail_string = 'RES_DEACTIVATED'
-            case 'N':  # Detail not available.
+            case 'N':  # Detail not available
                 detail_string = 'NOT_AVAILABLE'
             case _:
                 raise Exception('Invalid Short Sale Price Test Detail flag')
@@ -322,13 +322,13 @@ class QuoteUpdate:
     def to_string(self):
         # Determine the Quote Update flags.
         q_flags = []
-        if self.is_halted:
+        if self.is_halted:  # Symbol is halte, paused or otherwise not available for trading on IEX
             q_flags.append('HALTED')
-        if self.is_active:
+        if self.is_active:  # Symbol is active, available for trading
             q_flags.append('ACTIVE')
-        if self.is_regular_market:
+        if self.is_regular_market:   # Regular Market Session
             q_flags.append('REGULAR')
-        if self.is_pre_post_market:
+        if self.is_pre_post_market:  # Pre-/Post-Market Session
             q_flags.append('PRE/POST')
         q_flags_string = '|'.join(q_flags)
 
@@ -369,9 +369,9 @@ class PriceLevelUpdate:
         # Check event flags.
         flag = ''
         match self.event_flag:
-            case 1:
+            case 1:  # Order Book is processing an event
                 flag = 'IN_TRANSITION'
-            case 0:
+            case 0:  # Event processing complete
                 flag = 'TRANS_COMPLETE'
             case _:
                 raise Exception('Invalid event flag encountered in price level update message')
@@ -412,17 +412,17 @@ class TradeReport:
     def to_string(self):
         # Parse the sale condition flags.
         sale_conditions = []
-        if self.is_intermarket_sweep:
+        if self.is_intermarket_sweep:  # Intermarket Sweep Order (ISO)
             sale_conditions.append('INTERMARKET_SWEEP')
-        if self.is_extended_hours:
+        if self.is_extended_hours:  # Extended Hours Trade
             sale_conditions.append('EXTENDED_HOURS')
-        else:
+        else:                       # Regular Market Session Trade
             sale_conditions.append('REGULAR_HOURS')
-        if self.is_odd_lot:
+        if self.is_odd_lot:  # Odd Lot Trade
             sale_conditions.append('ODD_LOT')
-        if self.is_trade_through_exempt:
+        if self.is_trade_through_exempt:  # Trade is not subject to Rule 611 (Trade Through)
             sale_conditions.append('TRADE_THROUGH_EXEMPT')
-        if self.is_single_price_cross:
+        if self.is_single_price_cross:  # Trade resulting from a single-price cross
             sale_conditions.append('SINGLE_PRICE_CROSS')
         sale_conditions_string = '|'.join(sale_conditions)
 
@@ -453,9 +453,9 @@ class OfficialPrice:
         # Determine Price Type.
         price_type_string = ''
         match self.price_type:
-            case 'Q':
+            case 'Q':  # Official opening price
                 price_type_string = 'OPENING'
-            case 'M':
+            case 'M':  # Official closing price
                 price_type_string = 'CLOSING'
             case _:
                 raise Exception('Invalid price type flag encountered in official price message')
@@ -495,17 +495,17 @@ class TradeBreak:
     def to_string(self):
         # Parse the sale condition flags.
         sale_conditions = []
-        if self.is_intermarket_sweep:
+        if self.is_intermarket_sweep:  # Intermarket Sweep Order (ISO)
             sale_conditions.append('INTERMARKET_SWEEP')
-        if self.is_extended_hours:
+        if self.is_extended_hours:  # Extended Hours Trade
             sale_conditions.append('EXTENDED_HOURS')
-        else:
+        else:                       # Regular Market Session Trade
             sale_conditions.append('REGULAR_HOURS')
-        if self.is_odd_lot:
+        if self.is_odd_lot:  # Odd Lot Trade
             sale_conditions.append('ODD_LOT')
-        if self.is_trade_through_exempt:
+        if self.is_trade_through_exempt:  # Trade is not subject to Rule 611 (Trade Through)
             sale_conditions.append('TRADE_THROUGH_EXEMPT')
-        if self.is_single_price_cross:
+        if self.is_single_price_cross:  # Trade resulting from a single-price cross
             sale_conditions.append('SINGLE_PRICE_CROSS')
         sale_conditions_string = '|'.join(sale_conditions)
 
@@ -587,7 +587,7 @@ class AuctionInformation:
         # Create the message string.
         message_string = (f'A,{auction_type_string},{self.symbol},{self.paired_shares},{self.reference_price},'
                           f'{self.ind_cl_price},{self.imbalance_shares},{imbalance_side_string},'
-                          f'{self.extension_number},{self.scheduled_auction_time},'
+                          f'{self.extension_number},{self.scheduled_auction_time},{self.auction_book_clearing_price},'
                           f'{self.collar_reference_price},{self.lower_auction_collar},{self.upper_auction_collar}')
         return message_string
 
