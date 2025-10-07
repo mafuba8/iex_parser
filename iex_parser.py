@@ -49,6 +49,7 @@ class IEXFileParser:
         self._message_type_counter = {t: 0 for t in self._MESSAGE_TYPES}
         self._output_buffers = {t: [] for t in self._MESSAGE_TYPES}
 
+
     def parse(self):
         """Reads the input_file and parses the message contents. The output data will be
          written into their respective files within the output_dir directory.
@@ -149,6 +150,7 @@ class IEXFileParser:
                 with open(self.output_file_dict[t], 'a+') as f:
                     f.writelines(self._output_buffers[t])
 
+
     def print_counter(self):
         """Prints how many of each message type was processed.
         """
@@ -156,6 +158,7 @@ class IEXFileParser:
         for message_type in self._MESSAGE_TYPES:
             print(f'  {self._message_type_counter[message_type]:,}'
                   f' {self._MESSAGE_TYPE_NAMES[message_type]} ({message_type})')
+
 
     def _parse_iex_payload(self, iex_payload: bytes,
                            packet_capture_time: int):
@@ -199,6 +202,7 @@ class IEXFileParser:
         if cur_offset != payload_len:
             raise Exception("Invalid parser state: cur_offset after parsing all messages does not match the header.")
 
+
     def _parse_iex_message(self, message_payload: bytes,
                            packet_capture_time: int,
                            send_time: int):
@@ -207,7 +211,12 @@ class IEXFileParser:
         type of message and the layout of the following bytes.
         """
         # Decode the message payload.
-        raw_timestamp, message_string, message_type = self._DECODER(message_payload)
+        message = self._DECODER(message_payload)
+
+        # Extract data from the message object.
+        raw_timestamp = message.timestamp
+        message_string = message.to_string()
+        message_type = message.message_type
 
         # Calculate offsets to packet capture time.
         packet_send_offset = packet_capture_time - send_time

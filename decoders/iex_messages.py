@@ -1,0 +1,593 @@
+# This file contains classes that represent the different types
+# of IEX messages.
+#
+# Benedikt Otto - b.otto.code@protonmail.com - https://github.com/mafuba8
+#
+import struct
+from typing import Union
+
+type Message = Union[SystemEvent, SecurityDirectory, TradingStatus, RetailLiquidityIndictor,
+                     OperationalHaltStatus, ShortSalePriceTestStatus, SecurityEvent, QuoteUpdate,
+                     PriceLevelUpdate, TradeReport, OfficialPrice, TradeBreak, AuctionInformation]
+
+#############################
+### Message Classes: Administrative Message Formats
+#############################
+class SystemEvent:
+    """Class representing a System Event Message (message type 'S')."""
+    def __init__(self, message_payload: bytes):
+        assert len(message_payload) == 10, "System Event Message payload size should be 10 bytes."
+        assert chr(message_payload[0]) == 'S', "Wrong message type bit."
+        self.message_type = 'S'
+
+        # Extract data from the payload.
+        self.system_event_type = chr(message_payload[1])
+        timestamp_raw = struct.unpack('<q', message_payload[2:10])[0]
+
+        self.timestamp = timestamp_raw
+
+    def to_string(self):
+        system_event_string = ''
+        match self.system_event_type:
+            case 'O':  # Start of Messages.
+                system_event_string = 'MESSAGES_START'
+            case 'S':  # Start of System Hours
+                system_event_string = 'SYSTEM_HOURS_START'
+            case 'R':  # Start of Regular Market Hours
+                system_event_string = 'REGULAR_MARKET_START'
+            case 'M':  # End of Regular Market Hours
+                system_event_string = 'REGULAR_MARKET_END'
+            case 'E':  # End of System Hours
+                system_event_string = 'SYSTEM_HOURS_END'
+            case 'C':  # End of Messages
+                system_event_string = 'MESSAGES_END'
+            case _:
+                raise Exception('Invalid System Event Message flag')
+
+        # Create message string.
+        message_string = f'S,{system_event_string}'
+        return message_string
+
+
+class SecurityDirectory:
+    def __init__(self, message_payload: bytes):
+        """Class representing a Security Directory Message (message type 'D')."""
+        assert len(message_payload) == 31, "Security Directory Message payload size should be 31 bytes."
+        assert chr(message_payload[0]) == 'D', "Wrong message type bit."
+        self.message_type = 'D'
+
+        # Extract data from the payload.
+        sd_flag_byte = message_payload[1]
+        timestamp_raw = struct.unpack('<q', message_payload[2:10])[0]
+        symbol_raw = struct.unpack('<8s', message_payload[10:18])[0]
+        round_lot_size = struct.unpack('<I', message_payload[18:22])[0]
+        adjusted_poc_price_raw = struct.unpack('<q', message_payload[22:30])[0]
+        luld_tier_int = message_payload[30]
+
+        self.is_test_sec = sd_flag_byte & 0x80
+        self.is_issued_sec = sd_flag_byte & 0x40
+        self.is_etp = sd_flag_byte & 0x20
+        self.timestamp = timestamp_raw
+        self.symbol = symbol_raw.decode().strip()
+        self.round_lot_size = round_lot_size
+        self.adjusted_poc_price = round(adjusted_poc_price_raw * 1e-4, 2)
+        self.luld_tier = luld_tier_int
+
+    def to_string(self):
+        # Determine security directory flags.
+        sd_flags = []
+        if self.is_test_sec:
+            sd_flags.append('TEST_SECURITY')
+        if self.is_issued_sec:
+            sd_flags.append('WHEN_ISSUED')
+        if self.is_etp:
+            sd_flags.append('ETP')
+        sd_flag_string = '|'.join(sd_flags)
+
+        # Determine LULD tier.
+        luld_tier_string = ''
+        match self.luld_tier:
+            case 0:  # Not applicable
+                luld_tier_string = 'NOT_APPLICABLE'
+            case 1:  # Tier 1 NMS Stock
+                luld_tier_string = 'TIER1_NMS_STOCK'
+            case 2:  # Tier 2 NMS Stock
+                luld_tier_string = 'TIER2_NMS_STOCK'
+            case _:
+                raise Exception('Invlaid Security Direcrity Message LULD Tier flag.')
+
+        # Create message string.
+        message_string = (f'D,{self.symbol},{self.round_lot_size},{self.adjusted_poc_price},'
+                          f'{luld_tier_string},{sd_flag_string}')
+        return message_string
+
+
+class TradingStatus:
+    """Class representing a TRading Status Message (message type 'H')."""
+    def __init__(self, message_payload: bytes):
+        assert len(message_payload) == 22, "Trading Status Message payload size should be 22 bytes."
+        assert chr(message_payload[0]) == 'H', "Wrong message type bit."
+        self.message_type = 'H'
+
+        # Extract data from the payload.
+        trading_status_int = message_payload[1]
+        timestamp_raw = struct.unpack('<q', message_payload[2:10])[0]
+        symbol_raw = struct.unpack('<8s', message_payload[10:18])[0]
+        reason_raw = struct.unpack('<4s', message_payload[18:22])[0]
+
+        self.trading_status = chr(trading_status_int)
+        self.timestamp = timestamp_raw
+        self.symbol = symbol_raw.decode().strip()
+        self.reason = reason_raw.decode().strip()
+
+    def to_string(self):
+        # Determine trading status.
+        trading_status_string = ''
+        match self.trading_status:
+            case 'H':  # Trading halted across all US equity markets.
+                trading_status_string = 'HALTED'
+            case 'O':  # Trading halt released into an Order Acceptance Period in IEX.
+                trading_status_string = 'HALT_RELEASED_INTO_OAP'
+            case 'P':  # Trading paused and Order Acceptance Period on IEX.
+                trading_status_string = 'PAUSED'
+            case 'T':  # Trading on IEX.
+                trading_status_string = 'TRADING'
+
+        # Create message string.
+        message_string = f'H,{self.symbol},{trading_status_string},{self.reason}'
+        return message_string
+
+
+class RetailLiquidityIndictor:
+    """Class representing a Retail Liquidity Indicator Message (message type 'I')."""
+    def __init__(self, message_payload: bytes):
+        assert len(message_payload) == 18, "Retail Liquidity Indicator Message payload size should be 18 bytes."
+        assert chr(message_payload[0]) == 'I', "Wrong message type bit."
+        self.message_type = 'I'
+
+        # Extract data from the payload.
+        retail_liquidity_indicator_int = message_payload[1]
+        timestamp_raw = struct.unpack('<q', message_payload[2:10])[0]
+        symbol_raw = struct.unpack('<8s', message_payload[10:18])[0]
+
+        self.retail_liquidity_indicator = chr(retail_liquidity_indicator_int)
+        self.timestamp = timestamp_raw
+        self.symbol = symbol_raw.decode().strip()
+
+    def to_string(self):
+        # Determine retail liquidity indicator.
+        retail_liquidity_indicator_string = ''
+        match self.retail_liquidity_indicator:
+            case ' ':  # Retail indicator not applicable
+                retail_liquidity_indicator_string = 'NOT_APPLICABLE'
+            case 'A':  # Buy interest for Retail
+                retail_liquidity_indicator_string = 'BUY_INTEREST'
+            case 'B':  # Sell interest for Retail
+                retail_liquidity_indicator_string = 'SELL_INTEREST'
+            case 'C':  # Buy and sell interest for Retail
+                retail_liquidity_indicator_string = 'BUY_INTEREST|SELL_INTEREST'
+            case _:
+                raise Exception('Invalid Retail Liquidity Indicator flag')
+
+        # Create message string.
+        message_string = f'I,{self.symbol},{retail_liquidity_indicator_string}'
+        return message_string
+
+
+class OperationalHaltStatus:
+    """Class representing an Operational Halt Message (message type 'O')."""
+    def __init__(self, message_payload: bytes):
+        assert len(message_payload) == 18, "Operational Halt Status Message payload size should be 18 bytes."
+        assert chr(message_payload[0]) == 'O', "Wrong message type bit."
+        self.message_type = 'O'
+
+        # Extract data from the payload.
+        operational_halt_status_int = message_payload[1]
+        timestamp_raw = struct.unpack('<q', message_payload[2:10])[0]
+        symbol_raw = struct.unpack('<8s', message_payload[10:18])[0]
+
+        self.timestamp = timestamp_raw
+        self.operational_halt_status = chr(operational_halt_status_int)
+        self.symbol = symbol_raw.decode().strip()
+
+    def to_string(self):
+        # Determine operational halt status.
+        operational_halt_status_string = ''
+        match self.operational_halt_status:
+            case 'O':  # IEX specific operational trading halt
+                operational_halt_status_string = 'HALTED'
+            case 'N':  # Not operationally halted on IEX
+                operational_halt_status_string = 'NOT_HALTED'
+            case _:
+                raise Exception('Invalid Operational Halt Status Message flag')
+
+        # Create message string.
+        message_string = f'O,{self.symbol},{operational_halt_status_string}'
+        return message_string
+
+
+class ShortSalePriceTestStatus:
+    """Class representing a Short Sale Price Test Statzs Message (message type 'P')."""
+    def __init__(self, message_payload: bytes):
+        assert len(message_payload) == 19, "Short Sale Price Test Status Message payload size should be 19 bytes."
+        assert chr(message_payload[0]) == 'P', "Wrong message type bit."
+        self.message_type = 'P'
+
+        # Extract data from the payload.
+        short_sale_price_test_status = message_payload[1]
+        timestamp_raw = struct.unpack('<q', message_payload[2:10])[0]
+        symbol_raw = struct.unpack('<8s', message_payload[10:18])[0]
+        detail_int = message_payload[18]
+
+        self.short_sale_price_test_status = short_sale_price_test_status
+        self.timestamp = timestamp_raw
+        self.symbol = symbol_raw.decode().strip()
+        self.price_test_detail = chr(detail_int)
+
+    def to_string(self):
+        # Determine short sale price test status.
+        status_string = ''
+        match self.short_sale_price_test_status:
+            case 0:  # Short Sale Price Test Not in Effect
+                status_string = 'NOT_IN_EFFECT'
+            case 1:  # Short Sale Price Test in Effect
+                status_string = 'IN_EFFECT'
+            case _:
+                raise Exception('Invalid Short Sale Price Test Status flag')
+
+        # Determine short sale price test detail.
+        detail_string = ''
+        match self.price_test_detail:
+            case ' ':  # No price test in place.
+                detail_string = 'NO_PRICE_TEST'
+            case 'A':  # Restrictions in effect due to an intraday price drop in the security.
+                detail_string = 'RES_ACTIVATED'
+            case 'C':  # Restriction remains in effect from prior day.
+                detail_string = 'RES_CONTINUED'
+            case 'D':  # Restriction deactivated.
+                detail_string = 'RES_DEACTIVATED'
+            case 'N':  # Detail not available.
+                detail_string = 'NOT_AVAILABLE'
+            case _:
+                raise Exception('Invalid Short Sale Price Test Detail flag')
+
+        # Create message string.
+        message_string = f'P,{self.symbol},{status_string},{detail_string}'
+        return message_string
+
+
+class SecurityEvent:
+    """Class representing a Security Event Message (message type 'E')."""
+    def __init__(self, message_payload: bytes):
+        assert len(message_payload) == 18, "Security Event Message payload size should be 18 bytes."
+        assert chr(message_payload[0]) == 'E', "Wrong message type bit."
+        self.message_type = 'E'
+
+        # Extract data from the payload.
+        security_event_int = message_payload[1]
+        timestamp_raw = struct.unpack('<q', message_payload[2:10])[0]
+        symbol_raw = struct.unpack('<8s', message_payload[10:18])[0]
+
+        self.security_event = chr(security_event_int)
+        self.timestamp = timestamp_raw
+        self.symbol = symbol_raw.decode().strip()
+
+    def to_string(self):
+        # Determine security event.
+        security_event_string = ''
+        match self.security_event:
+            case 'O':  # Opening Process Complete
+                security_event_string = 'OPENING'
+            case 'C':  # Closing Process Complete
+                security_event_string = 'CLOSING'
+
+        # Create message string.
+        message_string = f'E,{self.symbol},{security_event_string}'
+        return message_string
+
+
+class QuoteUpdate:
+    """Class representing a Quote Update Message (message type 'Q')."""
+    def __init__(self, message_payload: bytes):
+        assert len(message_payload) == 42, "Quote Update Message payload size should be 42 bytes."
+        assert chr(message_payload[0]) == 'Q', "Wrong message type bit."
+        self.message_type = 'Q'
+
+        # Extract data from the payload.
+        quote_update_flags = message_payload[1]
+        timestamp_raw = struct.unpack('<q', message_payload[2:10])[0]
+        symbol_raw = struct.unpack('<8s', message_payload[10:18])[0]
+        bid_size = struct.unpack('<I', message_payload[18:22])[0]
+        bid_price_raw = struct.unpack('<Q', message_payload[22:30])[0]
+        ask_price_raw = struct.unpack('<Q', message_payload[30:38])[0]
+        ask_size = struct.unpack('<I', message_payload[38:42])[0]
+
+        # Symbol is halted, paused or otherwise not available for trading on IEX.
+        self.is_halted = quote_update_flags & 0x80
+        # Symbol is active, available for trading.
+        self.is_active = not self.is_halted
+
+        # Pre-/Post-Market Session.
+        self.is_pre_post_market = quote_update_flags & 0x40
+        # Regular Market Session.
+        self.is_regular_market = not self.is_pre_post_market
+
+        self.timestamp = timestamp_raw
+        self.symbol = symbol_raw.decode().strip()
+        self.bid_size = bid_size
+        self.bid_price = round(bid_price_raw * 1e-4, 2)
+        self.ask_price = round(ask_price_raw * 1e-4, 2)
+        self.ask_size = ask_size
+
+    def to_string(self):
+        # Determine the Quote Update flags.
+        q_flags = []
+        if self.is_halted:
+            q_flags.append('HALTED')
+        if self.is_active:
+            q_flags.append('ACTIVE')
+        if self.is_regular_market:
+            q_flags.append('REGULAR')
+        if self.is_pre_post_market:
+            q_flags.append('PRE/POST')
+        q_flags_string = '|'.join(q_flags)
+
+        # Create message string.
+        message_string = (f'Q,{self.symbol},{self.bid_size},{self.bid_price},{self.ask_size},'
+                          f'{self.ask_price},{q_flags_string}')
+        return message_string
+
+
+#############################
+### Message Classes: Trading Message Formats
+#############################
+class PriceLevelUpdate:
+    """Class representing a Price Level Update Message (message type '8' or '5')."""
+    def __init__(self, message_payload: bytes):
+        assert len(message_payload) == 30, "Price Level Update payload size should be 30 bytes."
+        assert chr(message_payload[0]) in ('8', '5'), "Wrong message type bit."
+        self.message_type = chr(message_payload[0])  # '8' or '5'
+
+        # Extract data from the payload.
+        event_flags = message_payload[1]
+        timestamp_raw = struct.unpack('<q', message_payload[2:10])[0]
+        symbol_raw = struct.unpack('<8s', message_payload[10:18])[0]
+        size = struct.unpack('<I', message_payload[18:22])[0]
+        price_raw = struct.unpack('<Q', message_payload[22:30])[0]
+
+        self.event_flag = event_flags
+        self.timestamp = timestamp_raw
+        self.symbol = symbol_raw.decode().strip()
+        self.size = size
+        if size == 0:
+            self.record_type = 'Z'
+        else:
+            self.record_type = 'R'
+        self.price = round(price_raw * 1e-4, 2)
+
+    def to_string(self):
+        # Check event flags.
+        flag = ''
+        match self.event_flag:
+            case 1:
+                flag = 'IN_TRANSITION'
+            case 0:
+                flag = 'TRANS_COMPLETE'
+            case _:
+                raise Exception('Invalid event flag encountered in price level update message')
+
+        # Create message string.
+        message_string = (f'{self.message_type},{self.symbol},{self.price},{self.size},'
+                          f'{self.record_type},{flag}')
+        return message_string
+
+
+class TradeReport:
+    """Class representing a Trade Report Message (message type 'T')."""
+    def __init__(self, message_payload: bytes):
+        assert len(message_payload) == 38, "Trade Report Message payload size should be 38 bytes."
+        assert chr(message_payload[0]) == 'T', "Wrong message type bit."
+        self.message_type = 'T'
+
+        # Extract data from the payload.
+        sale_condition_flags = message_payload[1]
+        timestamp_raw = struct.unpack('<q', message_payload[2:10])[0]
+        symbol_raw = struct.unpack('<8s', message_payload[10:18])[0]
+        size = struct.unpack('<I', message_payload[18:22])[0]
+        price_raw = struct.unpack('<Q', message_payload[22:30])[0]
+        trade_id = struct.unpack('<q', message_payload[30:38])[0]
+
+        self.is_intermarket_sweep = sale_condition_flags & 0x80
+        self.is_extended_hours = sale_condition_flags & 0x40
+        self.is_odd_lot = sale_condition_flags & 0x20
+        self.is_trade_through_exempt = sale_condition_flags & 0x10
+        self.is_single_price_cross = sale_condition_flags & 0x08
+
+        self.timestamp = timestamp_raw
+        self.symbol = symbol_raw.decode().strip()
+        self.size = size
+        self.price = round(price_raw * 1e-4, 2)
+        self.trade_id = trade_id
+
+    def to_string(self):
+        # Parse the sale condition flags.
+        sale_conditions = []
+        if self.is_intermarket_sweep:
+            sale_conditions.append('INTERMARKET_SWEEP')
+        if self.is_extended_hours:
+            sale_conditions.append('EXTENDED_HOURS')
+        else:
+            sale_conditions.append('REGULAR_HOURS')
+        if self.is_odd_lot:
+            sale_conditions.append('ODD_LOT')
+        if self.is_trade_through_exempt:
+            sale_conditions.append('TRADE_THROUGH_EXEMPT')
+        if self.is_single_price_cross:
+            sale_conditions.append('SINGLE_PRICE_CROSS')
+        sale_conditions_string = '|'.join(sale_conditions)
+
+        # Create the message string.
+        message_string = f'T,{self.symbol},{self.size},{self.price},{self.trade_id},{sale_conditions_string}'
+        return message_string
+
+
+class OfficialPrice:
+    """Class representing an Official Price Message (message type 'X')."""
+    def __init__(self, message_payload: bytes):
+        assert len(message_payload) == 26, "Official Price Message payload size should be 26 bytes."
+        assert chr(message_payload[0]) == 'X', "Wrong message type bit."
+        self.message_type = 'X'
+
+        # Extract data from the payload.
+        price_type_int = message_payload[1]
+        timestamp_raw = struct.unpack('<q', message_payload[2:10])[0]
+        symbol_raw = struct.unpack('<8s', message_payload[10:18])[0]
+        official_price_raw = struct.unpack('<Q', message_payload[18:26])[0]
+
+        self.price_type = chr(price_type_int)
+        self.timestamp = timestamp_raw
+        self.symbol = symbol_raw.decode().strip()
+        self.official_price = round(official_price_raw * 1e-4, 2)
+
+    def to_string(self):
+        # Determine Price Type.
+        price_type_string = ''
+        match self.price_type:
+            case 'Q':
+                price_type_string = 'OPENING'
+            case 'M':
+                price_type_string = 'CLOSING'
+            case _:
+                raise Exception('Invalid price type flag encountered in official price message')
+
+        # Create the message string.
+        message_string = f'X,{self.symbol},{self.official_price},{price_type_string}'
+        return message_string
+
+
+class TradeBreak:
+    """Class representing a Trade Break Message (message type 'B')."""
+    def __init__(self, message_payload: bytes):
+        assert len(message_payload) == 38, "Trade Break Message payload size should be 38 bytes."
+        assert chr(message_payload[0]) == 'B', "Wrong message type bit."
+        self.message_type = 'B'
+
+        # Extract data from the payload.
+        sale_condition_flags = message_payload[1]
+        timestamp_raw = struct.unpack('<q', message_payload[2:10])[0]
+        symbol_raw = struct.unpack('<8s', message_payload[10:18])[0]
+        size = struct.unpack('<I', message_payload[18:22])[0]
+        price_raw = struct.unpack('<Q', message_payload[22:30])[0]
+        trade_id = struct.unpack('<q', message_payload[30:38])[0]
+
+        self.is_intermarket_sweep = sale_condition_flags & 0x80
+        self.is_extended_hours = sale_condition_flags & 0x40
+        self.is_odd_lot = sale_condition_flags & 0x20
+        self.is_trade_through_exempt = sale_condition_flags & 0x10
+        self.is_single_price_cross = sale_condition_flags & 0x08
+
+        self.timestamp = timestamp_raw
+        self.symbol = symbol_raw.decode().strip()
+        self.size = size
+        self.price = round(price_raw * 1e-4, 2)
+        self.trade_id = trade_id
+
+    def to_string(self):
+        # Parse the sale condition flags.
+        sale_conditions = []
+        if self.is_intermarket_sweep:
+            sale_conditions.append('INTERMARKET_SWEEP')
+        if self.is_extended_hours:
+            sale_conditions.append('EXTENDED_HOURS')
+        else:
+            sale_conditions.append('REGULAR_HOURS')
+        if self.is_odd_lot:
+            sale_conditions.append('ODD_LOT')
+        if self.is_trade_through_exempt:
+            sale_conditions.append('TRADE_THROUGH_EXEMPT')
+        if self.is_single_price_cross:
+            sale_conditions.append('SINGLE_PRICE_CROSS')
+        sale_conditions_string = '|'.join(sale_conditions)
+
+        # Create the message string.
+        message_string = f'T,{self.symbol},{self.size},{self.price},{self.trade_id},{sale_conditions_string}'
+        return message_string
+
+
+#############################
+### Message Classes: Auction Message Formats
+#############################
+class AuctionInformation:
+    """Class representing an Auction Information Message (message type 'A')."""
+    def __init__(self, message_payload: bytes):
+        assert len(message_payload) == 80, "Auction Information Message payload size should be 80 bytes."
+        assert chr(message_payload[0]) == 'A', "Wrong message type bit."
+        self.message_type = 'A'
+
+        # Extract data from the payload.
+        auction_type_int = message_payload[1]
+        timestamp_raw = struct.unpack('<q', message_payload[2:10])[0]
+        symbol_raw = struct.unpack('<8s', message_payload[10:18])[0]
+        paired_shares = struct.unpack('<I', message_payload[18:22])[0]
+        reference_price_raw = struct.unpack('<Q', message_payload[22:30])[0]
+        ind_cl_price_raw = struct.unpack('<Q', message_payload[30:38])[0]
+        imbalance_shares = struct.unpack('<I', message_payload[38:42])[0]
+        imbalance_side_int = message_payload[42]
+        extension_number = message_payload[43]
+        scheduled_auction_time = struct.unpack('<I', message_payload[44:48])[0]
+        auction_book_clearing_price_raw = struct.unpack('<Q', message_payload[48:56])[0]
+        collar_reference_price_raw = struct.unpack('<Q', message_payload[56:64])[0]
+        lower_auction_collar_raw = struct.unpack('<Q', message_payload[64:72])[0]
+        upper_auction_collar_raw = struct.unpack('<Q', message_payload[72:80])[0]
+
+        self.auction_type = chr(auction_type_int)
+        self.timestamp = timestamp_raw
+        self.symbol = symbol_raw.decode().strip()
+        self.paired_shares = paired_shares
+        self.reference_price = round(reference_price_raw * 1e-4, 2)
+        self.ind_cl_price = round(ind_cl_price_raw * 1e-4, 2)
+        self.imbalance_shares = imbalance_shares
+        self.imbalance_side = chr(imbalance_side_int)
+        self.extension_number = extension_number
+        self.scheduled_auction_time = scheduled_auction_time
+        self.auction_book_clearing_price = round(auction_book_clearing_price_raw * 1e-4, 2)
+        self.collar_reference_price = round(collar_reference_price_raw * 1e-4, 2)
+        self.lower_auction_collar = round(lower_auction_collar_raw * 1e-4, 2)
+        self.upper_auction_collar = round(upper_auction_collar_raw * 1e-4, 2)
+
+    def to_string(self):
+        # Determine auction type.
+        auction_type_string = ''
+        match self.auction_type:
+            case 'O':  # Opening Auction
+                auction_type_string = 'OPENING'
+            case 'C':  # Closing Auction
+                auction_type_string = 'CLOSING'
+            case 'I':  # IPO Auction
+                auction_type_string = 'IPO'
+            case 'H':  # Halt Auction
+                auction_type_string = 'HALT'
+            case 'V':  # Volatility Auction
+                auction_type_string = 'VOLATILITY'
+            case _:
+                raise Exception('Invalid auction type flag encountered in auction information message')
+
+        # Determine imbalance side.
+        imbalance_side_string = ''
+        match self.imbalance_side:
+            case 'B':  # buy-side imbalance
+                imbalance_side_string = 'BUY'
+            case 'S':  # sell-side imbalance
+                imbalance_side_string = 'SELL'
+            case 'N':  # no imbalance
+                imbalance_side_string = 'NONE'
+            case _:
+                raise Exception('Invalid imbalance side flag encountered in official price message')
+
+        # Create the message string.
+        message_string = (f'A,{auction_type_string},{self.symbol},{self.paired_shares},{self.reference_price},'
+                          f'{self.ind_cl_price},{self.imbalance_shares},{imbalance_side_string},'
+                          f'{self.extension_number},{self.scheduled_auction_time},'
+                          f'{self.collar_reference_price},{self.lower_auction_collar},{self.upper_auction_collar}')
+        return message_string
+
