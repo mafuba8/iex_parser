@@ -74,7 +74,7 @@ def decode(message_payload: bytes) -> iex_messages.Message:
         # Trading Message Formats
         case 'Q':  # Quote Update Message
             return iex_messages.QuoteUpdate(message_payload)
-        case 'T':  # TRade Report Message
+        case 'T':  # Trade Report Message
             return iex_messages.TradeReport(message_payload)
         case 'X':  # Official Price Message
             return iex_messages.OfficialPrice(message_payload)
@@ -85,4 +85,4 @@ def decode(message_payload: bytes) -> iex_messages.Message:
             return iex_messages.AuctionInformation(message_payload)
 
         case _:
-            raise Exception('Unknonw TOPS1.6 message type.')
+            raise Exception('Unknown TOPS1.6 message type.')

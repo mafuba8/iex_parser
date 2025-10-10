@@ -108,7 +108,7 @@ class IEXFileParser:
                 captured_packet_length = struct.unpack('<I', stream.read(4))[0]
                 original_packet_length = struct.unpack('<I', stream.read(4))[0]
 
-                assert captured_packet_length == original_packet_length, "We assume a smap length value of 0."
+                assert captured_packet_length == original_packet_length, "We assume a snap length value of 0."
 
                 # Timestamps are split in two 32bit blocks and in little endian.
                 timestamp = struct.unpack('<Q', ts_lower + ts_upper)[0]

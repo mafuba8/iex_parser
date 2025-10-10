@@ -80,7 +80,7 @@ def decode(message_payload: bytes) -> iex_messages.Message:
         # Trading Message Formats
         case '8':  # Price Level Update Message (Buy)
             return iex_messages.PriceLevelUpdate(message_payload)
-        case '5':  # Price Lecel Update Message (Sell)
+        case '5':  # Price Level Update Message (Sell)
             return iex_messages.PriceLevelUpdate(message_payload)
         case 'T':  # Trade Report Message
             return iex_messages.TradeReport(message_payload)
