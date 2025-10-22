@@ -15,10 +15,13 @@ type Message = Union[SystemEvent, SecurityDirectory, TradingStatus, RetailLiquid
 #############################
 class SystemEvent:
     """Class representing a System Event Message (message type 'S')."""
+    message_type = 'S'
+    message_type_name = 'System Event'
+    csv_header = 'Tick Type,System Event'
+
     def __init__(self, message_payload: bytes):
         assert len(message_payload) == 10, "System Event Message payload size should be 10 bytes."
         assert chr(message_payload[0]) == 'S', "Wrong message type bit."
-        self.message_type = 'S'
 
         # Extract data from the payload.
         self.system_event_type = chr(message_payload[1])
@@ -50,11 +53,14 @@ class SystemEvent:
 
 
 class SecurityDirectory:
+    """Class representing a Security Directory Message (message type 'D')."""
+    message_type = 'D'
+    message_type_name = 'Security Directory'
+    csv_header = 'Tick Type,Symbol,Round Lot Size,Adjusted POC Price,LULD Tier,Security Directory Flags'
+
     def __init__(self, message_payload: bytes):
-        """Class representing a Security Directory Message (message type 'D')."""
         assert len(message_payload) == 31, "Security Directory Message payload size should be 31 bytes."
         assert chr(message_payload[0]) == 'D', "Wrong message type bit."
-        self.message_type = 'D'
 
         # Extract data from the payload.
         sd_flag_byte = message_payload[1]
@@ -103,11 +109,14 @@ class SecurityDirectory:
 
 
 class TradingStatus:
-    """Class representing a TRading Status Message (message type 'H')."""
+    """Class representing a Trading Status Message (message type 'H')."""
+    message_type = 'H'
+    message_type_name = 'Trading Status'
+    csv_header = 'Tick Type,Symbol,Trading Status,Reason'
+
     def __init__(self, message_payload: bytes):
         assert len(message_payload) == 22, "Trading Status Message payload size should be 22 bytes."
         assert chr(message_payload[0]) == 'H', "Wrong message type bit."
-        self.message_type = 'H'
 
         # Extract data from the payload.
         trading_status_int = message_payload[1]
@@ -140,10 +149,13 @@ class TradingStatus:
 
 class RetailLiquidityIndictor:
     """Class representing a Retail Liquidity Indicator Message (message type 'I')."""
+    message_type = 'I'
+    message_type_name = 'Retail Liquidity Indicator'
+    csv_header = 'Tick Type,Symbol,Retail Liquidity Indicator'
+
     def __init__(self, message_payload: bytes):
         assert len(message_payload) == 18, "Retail Liquidity Indicator Message payload size should be 18 bytes."
         assert chr(message_payload[0]) == 'I', "Wrong message type bit."
-        self.message_type = 'I'
 
         # Extract data from the payload.
         retail_liquidity_indicator_int = message_payload[1]
@@ -176,10 +188,13 @@ class RetailLiquidityIndictor:
 
 class OperationalHaltStatus:
     """Class representing an Operational Halt Message (message type 'O')."""
+    message_type = 'O'
+    message_type_name = 'Operational Halt Status'
+    csv_header = 'Tick Type,Symbol,Operational Halt Status'
+
     def __init__(self, message_payload: bytes):
         assert len(message_payload) == 18, "Operational Halt Status Message payload size should be 18 bytes."
         assert chr(message_payload[0]) == 'O', "Wrong message type bit."
-        self.message_type = 'O'
 
         # Extract data from the payload.
         operational_halt_status_int = message_payload[1]
@@ -208,10 +223,13 @@ class OperationalHaltStatus:
 
 class ShortSalePriceTestStatus:
     """Class representing a Short Sale Price Test Statzs Message (message type 'P')."""
+    message_type = 'P'
+    message_type_name = 'Short Sale Price Test Status'
+    csv_header = 'Tick Type,Symbol,Short Sale Price Test Status,Detail'
+
     def __init__(self, message_payload: bytes):
         assert len(message_payload) == 19, "Short Sale Price Test Status Message payload size should be 19 bytes."
         assert chr(message_payload[0]) == 'P', "Wrong message type bit."
-        self.message_type = 'P'
 
         # Extract data from the payload.
         short_sale_price_test_status = message_payload[1]
@@ -258,10 +276,13 @@ class ShortSalePriceTestStatus:
 
 class SecurityEvent:
     """Class representing a Security Event Message (message type 'E')."""
+    message_type = 'E'
+    message_type_name = 'Security Event'
+    csv_header = 'Tick Type,Symbol,Security Event'
+
     def __init__(self, message_payload: bytes):
         assert len(message_payload) == 18, "Security Event Message payload size should be 18 bytes."
         assert chr(message_payload[0]) == 'E', "Wrong message type bit."
-        self.message_type = 'E'
 
         # Extract data from the payload.
         security_event_int = message_payload[1]
@@ -286,12 +307,18 @@ class SecurityEvent:
         return message_string
 
 
+#############################
+### Message Classes: Trading Message Formats
+#############################
 class QuoteUpdate:
     """Class representing a Quote Update Message (message type 'Q')."""
+    message_type = 'Q'
+    message_type_name = 'Quote Update'
+    csv_header = 'Tick Type,Symbol,Bid Size,Bid Price,Ask Size,Ask Price,Quote Flags'
+
     def __init__(self, message_payload: bytes):
         assert len(message_payload) == 42, "Quote Update Message payload size should be 42 bytes."
         assert chr(message_payload[0]) == 'Q', "Wrong message type bit."
-        self.message_type = 'Q'
 
         # Extract data from the payload.
         quote_update_flags = message_payload[1]
@@ -338,15 +365,21 @@ class QuoteUpdate:
         return message_string
 
 
-#############################
-### Message Classes: Trading Message Formats
-#############################
 class PriceLevelUpdate:
     """Class representing a Price Level Update Message (message type '8' or '5')."""
+    message_type = '8'  # '8' or '5'
+    message_type_name = 'Price Level Update'
+    csv_header = 'Tick Type,Symbol,Price,Size,Record Type,Flag'
+
     def __init__(self, message_payload: bytes):
         assert len(message_payload) == 30, "Price Level Update payload size should be 30 bytes."
         assert chr(message_payload[0]) in ('8', '5'), "Wrong message type bit."
-        self.message_type = chr(message_payload[0])  # '8' or '5'
+        if chr(message_payload[0]) == '8':
+            self.message_type = '8'
+            self.message_type_name = 'Price Level Update - Buy'
+        else:
+            self.message_type = '5'
+            self.message_type_name = 'Price Level Update - Sell'
 
         # Extract data from the payload.
         event_flags = message_payload[1]
@@ -367,7 +400,7 @@ class PriceLevelUpdate:
 
     def to_string(self):
         # Check event flags.
-        flag = ''
+        flag = 'Tick Type,Symbol,Price,Size,Record Type,Flag,ASK'
         match self.event_flag:
             case 1:  # Order Book is processing an event
                 flag = 'IN_TRANSITION'
@@ -384,10 +417,13 @@ class PriceLevelUpdate:
 
 class TradeReport:
     """Class representing a Trade Report Message (message type 'T')."""
+    message_type = 'T'
+    message_type_name = 'Trade Report'
+    csv_header = 'Tick Type,Symbol,Size,Price,Trade ID,Sale Condition'
+
     def __init__(self, message_payload: bytes):
         assert len(message_payload) == 38, "Trade Report Message payload size should be 38 bytes."
         assert chr(message_payload[0]) == 'T', "Wrong message type bit."
-        self.message_type = 'T'
 
         # Extract data from the payload.
         sale_condition_flags = message_payload[1]
@@ -433,10 +469,13 @@ class TradeReport:
 
 class OfficialPrice:
     """Class representing an Official Price Message (message type 'X')."""
+    message_type = 'X'
+    message_type_name = 'Official Price'
+    csv_header = 'Tick Type,Symbol,Official Price,Price Type'
+
     def __init__(self, message_payload: bytes):
         assert len(message_payload) == 26, "Official Price Message payload size should be 26 bytes."
         assert chr(message_payload[0]) == 'X', "Wrong message type bit."
-        self.message_type = 'X'
 
         # Extract data from the payload.
         price_type_int = message_payload[1]
@@ -467,10 +506,13 @@ class OfficialPrice:
 
 class TradeBreak:
     """Class representing a Trade Break Message (message type 'B')."""
+    message_type = 'B'
+    message_type_name = 'Trade Break'
+    csv_header = 'Tick Type,Symbol,Size,Price,Trade ID,Sale Condition'
+
     def __init__(self, message_payload: bytes):
         assert len(message_payload) == 38, "Trade Break Message payload size should be 38 bytes."
         assert chr(message_payload[0]) == 'B', "Wrong message type bit."
-        self.message_type = 'B'
 
         # Extract data from the payload.
         sale_condition_flags = message_payload[1]
@@ -519,10 +561,16 @@ class TradeBreak:
 #############################
 class AuctionInformation:
     """Class representing an Auction Information Message (message type 'A')."""
+    message_type = 'A'
+    message_type_name = 'Auction Information'
+    csv_header = ('Tick Type,Auction Type,Symbol,Paired Shares,Reference Price,'
+                  'Indicative Clearing Price,Imbalance Shares,Imbalance Side,'
+                  'Extension Number,Scheduled Auction Time,Auction Book Clearing Price,'
+                  'Collar Reference Price,Lower Auction Collar,Upper Auction Collar')
+
     def __init__(self, message_payload: bytes):
         assert len(message_payload) == 80, "Auction Information Message payload size should be 80 bytes."
         assert chr(message_payload[0]) == 'A', "Wrong message type bit."
-        self.message_type = 'A'
 
         # Extract data from the payload.
         auction_type_int = message_payload[1]
