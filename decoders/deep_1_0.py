@@ -47,7 +47,6 @@ def decode(message_payload: bytes) -> iex_messages.Message:
     """
     # Read the message type byte.
     message_type = chr(message_payload[0])
-    print(message_type)
     if message_type in message_classes:
         # Return an instance of the message class.
         return message_classes[message_type](message_payload)
