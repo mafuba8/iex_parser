@@ -4,6 +4,7 @@
 # Benedikt Otto - b.otto.code@protonmail.com - https://github.com/mafuba8
 #
 import struct
+from datetime import datetime
 from typing import Union
 
 type Message = Union[SystemEvent, SecurityDirectory, TradingStatus, RetailLiquidityIndictor,
@@ -50,6 +51,17 @@ class SystemEvent:
         # Create message string.
         message_string = f'S,{system_event_string}'
         return message_string
+
+    def to_dict(self):
+        message_dict = {}
+
+        # Time and date from timestamp.
+        d = datetime.fromtimestamp(self.timestamp)
+        message_dict['date'] = d.date()
+        message_dict['time'] = d.time()
+
+        message_dict['system_event_type'] = self.system_event_type
+        return message_dict
 
 
 class SecurityDirectory:
@@ -107,6 +119,25 @@ class SecurityDirectory:
                           f'{luld_tier_string},{sd_flag_string}')
         return message_string
 
+    def to_dict(self):
+        message_dict = {}
+
+        # Time and date from timestamp.
+        d = datetime.fromtimestamp(self.timestamp)
+        message_dict['date'] = d.date()
+        message_dict['time'] = d.time()
+
+        message_dict['test_security'] = self.is_test_sec
+        message_dict['issued_security'] = self.is_issued_sec
+        message_dict['etp'] = self.is_etp
+
+        message_dict['symbol'] = self.symbol
+        message_dict['round_lot_size'] = self.round_lot_size
+        message_dict['adjusted_poc_price'] = self.adjusted_poc_price
+        message_dict['luld_tier'] = self.luld_tier
+
+        return message_dict
+
 
 class TradingStatus:
     """Class representing a Trading Status Message (message type 'H')."""
@@ -145,6 +176,20 @@ class TradingStatus:
         # Create message string.
         message_string = f'H,{self.symbol},{trading_status_string},{self.reason}'
         return message_string
+
+    def to_dict(self):
+        message_dict = {}
+
+        # Time and date from timestamp.
+        d = datetime.fromtimestamp(self.timestamp)
+        message_dict['date'] = d.date()
+        message_dict['time'] = d.time()
+
+        message_dict['trading_status'] = self.trading_status
+        message_dict['symbol'] = self.symbol
+        message_dict['reason'] = self.reason
+
+        return message_dict
 
 
 class RetailLiquidityIndictor:
@@ -185,6 +230,19 @@ class RetailLiquidityIndictor:
         message_string = f'I,{self.symbol},{retail_liquidity_indicator_string}'
         return message_string
 
+    def to_dict(self):
+        message_dict = {}
+
+        # Time and date from timestamp.
+        d = datetime.fromtimestamp(self.timestamp)
+        message_dict['date'] = d.date()
+        message_dict['time'] = d.time()
+
+        message_dict['retail_liquidity_indicator'] = self.retail_liquidity_indicator
+        message_dict['symbol'] = self.symbol
+
+        return message_dict
+
 
 class OperationalHaltStatus:
     """Class representing an Operational Halt Message (message type 'O')."""
@@ -219,6 +277,19 @@ class OperationalHaltStatus:
         # Create message string.
         message_string = f'O,{self.symbol},{operational_halt_status_string}'
         return message_string
+
+    def to_dict(self):
+        message_dict = {}
+
+        # Time and date from timestamp.
+        d = datetime.fromtimestamp(self.timestamp)
+        message_dict['date'] = d.date()
+        message_dict['time'] = d.time()
+
+        message_dict['operational_halt_status'] = self.operational_halt_status
+        message_dict['symbol'] = self.symbol
+
+        return message_dict
 
 
 class ShortSalePriceTestStatus:
@@ -273,6 +344,23 @@ class ShortSalePriceTestStatus:
         message_string = f'P,{self.symbol},{status_string},{detail_string}'
         return message_string
 
+    def to_dict(self):
+        message_dict = {}
+
+        # Time and date from timestamp.
+        d = datetime.fromtimestamp(self.timestamp)
+        message_dict['date'] = d.date()
+        message_dict['time'] = d.time()
+
+        message_dict['in_effect'] = False
+        if self.short_sale_price_test_status == 1:
+            message_dict['in_effect'] = True
+
+        message_dict['symbol'] = self.symbol
+        message_dict['price_test_detail'] = self.price_test_detail
+
+        return message_dict
+
 
 class SecurityEvent:
     """Class representing a Security Event Message (message type 'E')."""
@@ -305,6 +393,19 @@ class SecurityEvent:
         # Create message string.
         message_string = f'E,{self.symbol},{security_event_string}'
         return message_string
+
+    def to_dict(self):
+        message_dict = {}
+
+        # Time and date from timestamp.
+        d = datetime.fromtimestamp(self.timestamp)
+        message_dict['date'] = d.date()
+        message_dict['time'] = d.time()
+
+        message_dict['security_event'] = self.security_event
+        message_dict['symbol'] = self.symbol
+
+        return message_dict
 
 
 #############################
@@ -364,6 +465,26 @@ class QuoteUpdate:
                           f'{self.ask_price},{q_flags_string}')
         return message_string
 
+    def to_dict(self):
+        message_dict = {}
+
+        # Time and date from timestamp.
+        d = datetime.fromtimestamp(self.timestamp)
+        message_dict['date'] = d.date()
+        message_dict['time'] = d.time()
+
+        message_dict['halted'] = self.is_halted
+        message_dict['active'] = self.is_active
+        message_dict['pre_post_market'] = self.is_pre_post_market
+        message_dict['regular_market'] = self.is_regular_market
+        message_dict['symbol'] = self.symbol
+        message_dict['bid_size'] = self.bid_size
+        message_dict['bid_price'] = self.bid_price
+        message_dict['ask_price'] = self.ask_price
+        message_dict['ask_size'] = self.ask_size
+
+        return message_dict
+
 
 class PriceLevelUpdate:
     """Class representing a Price Level Update Message (message type '8' or '5')."""
@@ -413,6 +534,26 @@ class PriceLevelUpdate:
         message_string = (f'{self.message_type},{self.symbol},{self.price},{self.size},'
                           f'{self.record_type},{flag}')
         return message_string
+
+    def to_dict(self):
+        message_dict = {}
+
+        # Time and date from timestamp.
+        d = datetime.fromtimestamp(self.timestamp)
+        message_dict['date'] = d.date()
+        message_dict['time'] = d.time()
+
+        message_dict['type'] = ''
+        if self.message_type == '8':
+            message_dict['type'] = 'SELL'
+        elif self.message_type == '5':
+            message_dict['type'] = 'BUY'
+
+        message_dict['symbol'] = self.symbol
+        message_dict['size'] = self.size
+        message_dict['price'] = self.price
+
+        return message_dict
 
 
 class TradeReport:
@@ -466,6 +607,26 @@ class TradeReport:
         message_string = f'T,{self.symbol},{self.size},{self.price},{self.trade_id},{sale_conditions_string}'
         return message_string
 
+    def to_dict(self):
+        message_dict = {}
+
+        # Time and date from timestamp.
+        d = datetime.fromtimestamp(self.timestamp)
+        message_dict['date'] = d.date()
+        message_dict['time'] = d.time()
+
+        message_dict['intermarket_sweep'] = self.is_intermarket_sweep
+        message_dict['extended_hours'] = self.is_extended_hours
+        message_dict['odd_lot'] = self.is_odd_lot
+        message_dict['trade_through_exempt'] = self.is_trade_through_exempt
+        message_dict['single_price_cross'] = self.is_single_price_cross
+        message_dict['symbol'] = self.symbol
+        message_dict['size'] = self.size
+        message_dict['price'] = self.price
+        message_dict['trade_id'] = self.trade_id
+
+        return message_dict
+
 
 class OfficialPrice:
     """Class representing an Official Price Message (message type 'X')."""
@@ -502,6 +663,20 @@ class OfficialPrice:
         # Create the message string.
         message_string = f'X,{self.symbol},{self.official_price},{price_type_string}'
         return message_string
+
+    def to_dict(self):
+        message_dict = {}
+
+        # Time and date from timestamp.
+        d = datetime.fromtimestamp(self.timestamp)
+        message_dict['date'] = d.date()
+        message_dict['time'] = d.time()
+
+        message_dict['price_type'] = self.price_type
+        message_dict['symbol'] = self.symbol
+        message_dict['official_price'] = self.official_price
+
+        return message_dict
 
 
 class TradeBreak:
@@ -554,6 +729,27 @@ class TradeBreak:
         # Create the message string.
         message_string = f'T,{self.symbol},{self.size},{self.price},{self.trade_id},{sale_conditions_string}'
         return message_string
+
+    def to_dict(self):
+        message_dict = {}
+
+        # Time and date from timestamp.
+        d = datetime.fromtimestamp(self.timestamp)
+        message_dict['date'] = d.date()
+        message_dict['time'] = d.time()
+
+        message_dict['intermarket_sweep'] = self.is_intermarket_sweep
+        message_dict['extended_hours'] = self.is_extended_hours
+        message_dict['odd_lot'] = self.is_odd_lot
+        message_dict['trade_through_exempt'] = self.is_trade_through_exempt
+        message_dict['single_price_cross'] = self.is_single_price_cross
+        message_dict['symbol'] = self.symbol
+        message_dict['size'] = self.size
+        message_dict['price'] = self.price
+        message_dict['trade_id'] = self.trade_id
+
+        message_dict['system_event_type'] = self.system_event_type
+        return message_dict
 
 
 #############################
@@ -638,4 +834,28 @@ class AuctionInformation:
                           f'{self.extension_number},{self.scheduled_auction_time},{self.auction_book_clearing_price},'
                           f'{self.collar_reference_price},{self.lower_auction_collar},{self.upper_auction_collar}')
         return message_string
+
+    def to_dict(self):
+        message_dict = {}
+
+        # Time and date from timestamp.
+        d = datetime.fromtimestamp(self.timestamp)
+        message_dict['date'] = d.date()
+        message_dict['time'] = d.time()
+
+        message_dict['auction_type'] = self.auction_type
+        message_dict['symbol'] = self.symbol
+        message_dict['paired_shares'] = self.paired_shares
+        message_dict['reference_price'] = self.reference_price
+        message_dict['ind_cl_price'] = self.ind_cl_price
+        message_dict['imbalance_shares'] = self.imbalance_shares
+        message_dict['imbalance_side'] = self.imbalance_side
+        message_dict['extenstion_number'] = self.extension_number
+        message_dict['scheduled_auction_time'] = self.scheduled_auction_time
+        message_dict['auction_book_clearing_price'] = self.auction_book_clearing_price
+        message_dict['collar_reference_price'] = self.collar_reference_price
+        message_dict['lower_auction_collar'] = self.lower_auction_collar
+        message_dict['upper_auction_collar'] = self.upper_auction_collar
+
+        return message_dict
 
