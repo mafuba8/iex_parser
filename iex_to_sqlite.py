@@ -5,10 +5,10 @@
 #
 import struct
 import gzip
+import sqlite3
 
 import sqlite_functions
 from iex_decoders import Decoder
-from sqlite_functions import *
 
 class IEXDBParser:
     """
