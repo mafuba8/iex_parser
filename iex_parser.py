@@ -5,16 +5,15 @@
 import struct
 import gzip
 from iex_decoders import Decoder
+from typing import Iterator
 
 
 class IEXFileParser:
     """
     Class for parsing PCAP files of IEX-TP packets with messages from the DEEP feed.
     """
-    def __init__(self, input_file: str,
-                 output_dir: str,
-                 decoder: Decoder,
-                 max_packets=-1):
+    def __init__(self, input_file: str|Path, output_dir: str|Path,
+                 decoder: Decoder, max_packets=-1):
         self._MESSAGE_TYPES = decoder.message_types
         self._MESSAGE_TYPE_NAMES = decoder.message_type_names
         self._CSV_HEADER_DICT = decoder.csv_header_dict
@@ -31,7 +30,7 @@ class IEXFileParser:
 
 
     def parse(self):
-        """Reads the input_file and parses the message contents. The output data will be
+        """Parses the message contents of self.input_file. The output data will be
          written into their respective files within the output_dir directory.
          Also updates the message type counter.
         """
@@ -43,6 +42,42 @@ class IEXFileParser:
                 csv_header += self._CSV_HEADER_DICT[message_type] + '\n'
                 f.write(csv_header)
 
+        # Run through all IEX packages.
+        for iex_payload, capture_time in self._iex_payload_reader():
+            # Parse the IEX Payload.
+            self._parse_iex_payload(iex_payload, capture_time)
+
+            # Every 10 million packets, write buffer to their respective files and print a status message.
+            if self.num_packets % 10_000_000 == 0:
+                for t in self._MESSAGE_TYPES:
+                    with open(self.output_file_dict[t], 'a+') as f:
+                        f.writelines(self._output_buffers[t])
+                    self._output_buffers[t] = []
+
+                print(f'Parsed {self.num_packets:,} packets.')
+
+            # Stop early if a limit on max_packets is set.
+            if self.max_packets > 0:
+                if self.num_packets > self.max_packets:
+                    break
+
+        # Write remaining buffer to output.
+        for t in self._MESSAGE_TYPES:
+            with open(self.output_file_dict[t], 'a+') as f:
+                f.writelines(self._output_buffers[t])
+
+
+    def print_counter(self):
+        """Prints how many of each message type was processed.
+        """
+        print(f'Parsed {self.num_packets:,} packets:')
+        for message_type in self._MESSAGE_TYPES:
+            print(f'  {self._message_type_counter[message_type]:,}'
+                  f' {self._MESSAGE_TYPE_NAMES[message_type]} ({message_type})')
+
+
+    def _iex_payload_reader(self) -> Iterator[tuple[bytes, int]]:
+        """Returns a generator for IEX Payloads and their packet capture times in self.input_file."""
         # Open and parse the input file.
         with gzip.open(self.input_file, 'rb') as stream:
             # Parse the PcapNG header (Section Header Block).
@@ -105,39 +140,13 @@ class IEXFileParser:
                 # Extract and parse IEX payload.
                 iex_payload_length = captured_packet_length - offset_into_iex_payload
                 iex_packet = stream.read(iex_payload_length)
-                self._parse_iex_payload(iex_packet, packet_capture_time_in_nanoseconds)
+
+                # Yield IEX packet and the packet capture time.
+                yield iex_packet, packet_capture_time_in_nanoseconds
 
                 # Skip the remaining fields of the current EPB.
                 rest_length = block_size - (4 + 4 + 4 + 4 + 4 + 4 + 4 + captured_packet_length)
                 stream.read(rest_length)
-
-                # Every 10 million packets, write buffer to their respective files and print a status message.
-                if self.num_packets % 10_000_000 == 0:
-                    for t in self._MESSAGE_TYPES:
-                        with open(self.output_file_dict[t], 'a+') as f:
-                            f.writelines(self._output_buffers[t])
-                        self._output_buffers[t] = []
-
-                    print(f'Parsed {self.num_packets:,} packets.')
-
-                # Stop early if a limit on max_packets is set.
-                if self.max_packets > 0:
-                    if self.num_packets > self.max_packets:
-                        break
-
-            # Write remaining buffer to output.
-            for t in self._MESSAGE_TYPES:
-                with open(self.output_file_dict[t], 'a+') as f:
-                    f.writelines(self._output_buffers[t])
-
-
-    def print_counter(self):
-        """Prints how many of each message type was processed.
-        """
-        print(f'Parsed {self.num_packets:,} packets:')
-        for message_type in self._MESSAGE_TYPES:
-            print(f'  {self._message_type_counter[message_type]:,}'
-                  f' {self._MESSAGE_TYPE_NAMES[message_type]} ({message_type})')
 
 
     def _parse_iex_payload(self, iex_payload: bytes,
@@ -233,9 +242,9 @@ if __name__ == '__main__':
     regex_tops_16 = re.compile(r'^data_feeds_(\d{8})_(\d{8})_IEXTP1_TOPS1\.6\.pcap\.gz$')
 
     if regex_deep_10.search(FILE_INPUT.name):
-        decoder = Decoder('DEEP_1_0')
+        iex_decoder = Decoder('DEEP_1_0')
     elif regex_tops_16.search(FILE_INPUT.name):
-        decoder = Decoder('TOPS_1_6')
+        iex_decoder = Decoder('TOPS_1_6')
     else:
         print(f'Could not determine the right decoder, exiting...')
         exit()
@@ -243,7 +252,7 @@ if __name__ == '__main__':
     time_start = time.time()
 
     # Create parser object and parse the file with the chosen decoder.
-    parser = IEXFileParser(FILE_INPUT, DIR_OUTPUT, decoder)
+    parser = IEXFileParser(FILE_INPUT, DIR_OUTPUT, iex_decoder)
     parser.parse()
 
     # Print some information.
