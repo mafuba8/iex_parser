@@ -12,6 +12,16 @@ type Message = Union[SystemEvent, SecurityDirectory, TradingStatus, RetailLiquid
                      PriceLevelUpdate, TradeReport, OfficialPrice, TradeBreak, AuctionInformation]
 
 #############################
+### Helper functions
+#############################
+def unix_to_date(t: int) -> tuple[str, str]:
+    """Helper function that converts the given unix timestamp (in nanoseconds)
+    into iso formats of their date and time parts."""
+    dt = datetime.fromtimestamp(t / 1_000_000_000)
+    return dt.date().isoformat(), dt.time().isoformat()
+
+
+#############################
 ### Message Classes: Administrative Message Formats
 #############################
 class SystemEvent:
@@ -56,9 +66,9 @@ class SystemEvent:
         message_dict = {}
 
         # Time and date from timestamp.
-        d = datetime.fromtimestamp(self.timestamp)
-        message_dict['date'] = d.date()
-        message_dict['time'] = d.time()
+        date, time = unix_to_date(self.timestamp)
+        message_dict['date'] = date
+        message_dict['time'] = time
 
         message_dict['system_event_type'] = self.system_event_type
         return message_dict
@@ -123,9 +133,9 @@ class SecurityDirectory:
         message_dict = {}
 
         # Time and date from timestamp.
-        d = datetime.fromtimestamp(self.timestamp)
-        message_dict['date'] = d.date()
-        message_dict['time'] = d.time()
+        date, time = unix_to_date(self.timestamp)
+        message_dict['date'] = date
+        message_dict['time'] = time
 
         message_dict['test_security'] = self.is_test_sec
         message_dict['issued_security'] = self.is_issued_sec
@@ -181,9 +191,9 @@ class TradingStatus:
         message_dict = {}
 
         # Time and date from timestamp.
-        d = datetime.fromtimestamp(self.timestamp)
-        message_dict['date'] = d.date()
-        message_dict['time'] = d.time()
+        date, time = unix_to_date(self.timestamp)
+        message_dict['date'] = date
+        message_dict['time'] = time
 
         message_dict['trading_status'] = self.trading_status
         message_dict['symbol'] = self.symbol
@@ -234,9 +244,9 @@ class RetailLiquidityIndictor:
         message_dict = {}
 
         # Time and date from timestamp.
-        d = datetime.fromtimestamp(self.timestamp)
-        message_dict['date'] = d.date()
-        message_dict['time'] = d.time()
+        date, time = unix_to_date(self.timestamp)
+        message_dict['date'] = date
+        message_dict['time'] = time
 
         message_dict['retail_liquidity_indicator'] = self.retail_liquidity_indicator
         message_dict['symbol'] = self.symbol
@@ -282,9 +292,9 @@ class OperationalHaltStatus:
         message_dict = {}
 
         # Time and date from timestamp.
-        d = datetime.fromtimestamp(self.timestamp)
-        message_dict['date'] = d.date()
-        message_dict['time'] = d.time()
+        date, time = unix_to_date(self.timestamp)
+        message_dict['date'] = date
+        message_dict['time'] = time
 
         message_dict['operational_halt_status'] = self.operational_halt_status
         message_dict['symbol'] = self.symbol
@@ -348,9 +358,9 @@ class ShortSalePriceTestStatus:
         message_dict = {}
 
         # Time and date from timestamp.
-        d = datetime.fromtimestamp(self.timestamp)
-        message_dict['date'] = d.date()
-        message_dict['time'] = d.time()
+        date, time = unix_to_date(self.timestamp)
+        message_dict['date'] = date
+        message_dict['time'] = time
 
         message_dict['in_effect'] = False
         if self.short_sale_price_test_status == 1:
@@ -398,9 +408,9 @@ class SecurityEvent:
         message_dict = {}
 
         # Time and date from timestamp.
-        d = datetime.fromtimestamp(self.timestamp)
-        message_dict['date'] = d.date()
-        message_dict['time'] = d.time()
+        date, time = unix_to_date(self.timestamp)
+        message_dict['date'] = date
+        message_dict['time'] = time
 
         message_dict['security_event'] = self.security_event
         message_dict['symbol'] = self.symbol
@@ -469,9 +479,9 @@ class QuoteUpdate:
         message_dict = {}
 
         # Time and date from timestamp.
-        d = datetime.fromtimestamp(self.timestamp)
-        message_dict['date'] = d.date()
-        message_dict['time'] = d.time()
+        date, time = unix_to_date(self.timestamp)
+        message_dict['date'] = date
+        message_dict['time'] = time
 
         message_dict['halted'] = self.is_halted
         message_dict['active'] = self.is_active
@@ -539,9 +549,9 @@ class PriceLevelUpdate:
         message_dict = {}
 
         # Time and date from timestamp.
-        d = datetime.fromtimestamp(self.timestamp)
-        message_dict['date'] = d.date()
-        message_dict['time'] = d.time()
+        date, time = unix_to_date(self.timestamp)
+        message_dict['date'] = date
+        message_dict['time'] = time
 
         message_dict['type'] = ''
         if self.message_type == '8':
@@ -611,9 +621,9 @@ class TradeReport:
         message_dict = {}
 
         # Time and date from timestamp.
-        d = datetime.fromtimestamp(self.timestamp)
-        message_dict['date'] = d.date()
-        message_dict['time'] = d.time()
+        date, time = unix_to_date(self.timestamp)
+        message_dict['date'] = date
+        message_dict['time'] = time
 
         message_dict['intermarket_sweep'] = self.is_intermarket_sweep
         message_dict['extended_hours'] = self.is_extended_hours
@@ -668,9 +678,9 @@ class OfficialPrice:
         message_dict = {}
 
         # Time and date from timestamp.
-        d = datetime.fromtimestamp(self.timestamp)
-        message_dict['date'] = d.date()
-        message_dict['time'] = d.time()
+        date, time = unix_to_date(self.timestamp)
+        message_dict['date'] = date
+        message_dict['time'] = time
 
         message_dict['price_type'] = self.price_type
         message_dict['symbol'] = self.symbol
@@ -734,9 +744,9 @@ class TradeBreak:
         message_dict = {}
 
         # Time and date from timestamp.
-        d = datetime.fromtimestamp(self.timestamp)
-        message_dict['date'] = d.date()
-        message_dict['time'] = d.time()
+        date, time = unix_to_date(self.timestamp)
+        message_dict['date'] = date
+        message_dict['time'] = time
 
         message_dict['intermarket_sweep'] = self.is_intermarket_sweep
         message_dict['extended_hours'] = self.is_extended_hours
@@ -839,9 +849,9 @@ class AuctionInformation:
         message_dict = {}
 
         # Time and date from timestamp.
-        d = datetime.fromtimestamp(self.timestamp)
-        message_dict['date'] = d.date()
-        message_dict['time'] = d.time()
+        date, time = unix_to_date(self.timestamp)
+        message_dict['date'] = date
+        message_dict['time'] = time
 
         message_dict['auction_type'] = self.auction_type
         message_dict['symbol'] = self.symbol
